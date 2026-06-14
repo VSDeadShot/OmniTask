@@ -3,6 +3,9 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "bin": {
+    "omni": "./cli.js"
+  },
   "scripts": {
     "dev": "concurrently \"vite\" \"node server.js\"",
     "build": "vite build",
