@@ -138,3 +138,23 @@ input:focus, select:focus, textarea:focus {
 .text-accent { color: var(--accent); }
 .inline-block { display: inline-block; }
 .opacity-50 { opacity: 0.5; }
+.opacity-80 { opacity: 0.8; }
+
+/* Drag and Drop Utilities */
+.cursor-grab { cursor: grab; }
+.cursor-grabbing { cursor: grabbing; }
+.drag-handle { 
+  opacity: 0.5; 
+  transition: opacity 0.2s;
+}
+.task-card:hover .drag-handle { opacity: 1; }
+.scale-105 { transform: scale(1.02); }
+.min-h-\[50px\] { min-height: 50px; }
+.transform { transform-origin: center; }
+.shadow-xl { box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); }
+.shadow-primary\/10 { box-shadow: 0 20px 25px -5px rgba(99, 102, 241, 0.1); }
+.pt-1 { padding-top: 0.25rem; }
+.drag-over {
+  border: 1px dashed var(--primary) !important;
+  background-color: rgba(99, 102, 241, 0.05) !important;
+}

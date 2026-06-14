@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Check, Trash2, FolderDot, Sparkles, Calendar, Tag, AlertCircle } from 'lucide-react';
+import { Plus, Check, Trash2, FolderDot, Sparkles, Calendar, Tag, AlertCircle, GripVertical } from 'lucide-react';
 import './App.css';
 
 const API_URL = 'http://localhost:3001/api/tasks';
@@ -7,6 +7,7 @@ const API_URL = 'http://localhost:3001/api/tasks';
 function App() {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [draggedTaskId, setDraggedTaskId] = useState(null);
   
   // Form State
   const [project, setProject] = useState('General');
@@ -55,7 +56,6 @@ function App() {
       const newTask = await response.json();
       setTasks([...tasks, newTask]);
       
-      // Reset form
       setTitle('');
       setDescription('');
       setTagsInput('');
@@ -90,12 +90,64 @@ function App() {
     }
   };
 
-  const getPriorityColor = (level) => {
+  // TODO: Future optimization - Check if @dnd-kit/core has released full React 19 support.
+  // If yes, we can replace this native HTML5 drag-and-drop with dnd-kit for better physics and animations.
+  const handleDragStart = (e, taskId) => {
+    setDraggedTaskId(taskId);
+    e.dataTransfer.setData('taskId', taskId);
+    e.dataTransfer.effectAllowed = 'move';
+    // Add slight delay for visual ghost image to generate before setting opacity
+    setTimeout(() => {
+      e.target.style.opacity = '0.4';
+    }, 0);
+  };
+
+  const handleDragEnd = (e) => {
+    e.target.style.opacity = '1';
+    setDraggedTaskId(null);
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.currentTarget.classList.add('drag-over');
+  };
+
+  const handleDragLeave = (e) => {
+    e.currentTarget.classList.remove('drag-over');
+  };
+
+  const handleDrop = async (e, toProject) => {
+    e.preventDefault();
+    e.currentTarget.classList.remove('drag-over');
+    
+    const taskId = e.dataTransfer.getData('taskId');
+    if (!taskId) return;
+
+    const task = tasks.find(t => t.id === taskId);
+    if (!task || task.project === toProject) return;
+
+    // Optimistic Update
+    setTasks(tasks.map(t => t.id === taskId ? { ...t, project: toProject } : t));
+
+    // Update Backend
+    try {
+      await fetch(`${API_URL}/${taskId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ project: toProject })
+      });
+    } catch (error) {
+      console.error("Failed to move task:", error);
+      fetchTasks(); // Revert
+    }
+  };
+
+  const getPriorityClass = (level) => {
     switch(level) {
-      case 'high': return 'text-red-400 border-red-500/50 bg-red-500/10';
-      case 'medium': return 'text-yellow-400 border-yellow-500/50 bg-yellow-500/10';
-      case 'low': return 'text-blue-400 border-blue-500/50 bg-blue-500/10';
-      default: return 'text-gray-400 border-gray-500/50 bg-gray-500/10';
+      case 'high': return 'priority-high';
+      case 'medium': return 'priority-medium';
+      case 'low': return 'priority-low';
+      default: return '';
     }
   };
 
@@ -115,12 +167,12 @@ function App() {
 
   return (
     <>
-      <h1><Sparkles className="inline-block mr-2" size={36} /> OmniTask</h1>
+      <h1><Sparkles className="inline-block mr-2 text-accent" size={36} /> OmniTask</h1>
       
       <div className="app-container">
         {/* Sidebar / Add Task */}
         <aside className="sidebar">
-          <div className="glass-panel animate-fade-in">
+          <div className="glass-panel animate-fade-in shadow-xl shadow-primary/10">
             <h2 className="text-xl font-semibold mb-4 text-primary flex items-center gap-2">
               <Plus size={20} /> New Task
             </h2>
@@ -185,8 +237,8 @@ function App() {
                 />
               </div>
 
-              <button type="submit" className="btn-primary mt-2">
-                Add to Project
+              <button type="submit" className="btn-primary mt-2 flex items-center justify-center gap-2">
+                <Plus size={18} /> Add to {project}
               </button>
             </form>
           </div>
@@ -203,21 +255,30 @@ function App() {
               <p>Add a task to start tracking your cross-project work.</p>
             </div>
           ) : (
-            projects.map((proj, index) => (
+            projects.map((proj) => (
               <div 
                 key={proj} 
-                className="glass-panel project-section animate-fade-in"
-                style={{ animationDelay: `${index * 0.1}s` }}
+                className="glass-panel project-section transition-all duration-200"
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={(e) => handleDrop(e, proj)}
               >
                 <h3 className="project-title">
                   <FolderDot className="text-accent" /> {proj}
                 </h3>
-                <div className="task-list">
+                <div className="task-list min-h-[50px]">
                   {tasksByProject[proj].map(task => (
                     <div 
                       key={task.id} 
-                      className={`glass-panel task-card ${task.status === 'completed' ? 'completed' : ''} priority-${task.priority}`}
+                      draggable="true"
+                      onDragStart={(e) => handleDragStart(e, task.id)}
+                      onDragEnd={handleDragEnd}
+                      className={`glass-panel task-card cursor-grab ${task.status === 'completed' ? 'completed' : ''} ${getPriorityClass(task.priority)} ${draggedTaskId === task.id ? 'opacity-50' : ''}`}
                     >
+                      <div className="drag-handle text-gray-500 pt-1">
+                        <GripVertical size={16} />
+                      </div>
+
                       <button 
                         className={`status-btn ${task.status === 'completed' ? 'checked' : ''}`}
                         onClick={() => toggleStatus(task)}
@@ -241,7 +302,7 @@ function App() {
                             </span>
                           )}
                           
-                          {task.tags && task.tags.map(tag => (
+                          {task.tags && task.tags.length > 0 && task.tags.map(tag => (
                             <span key={tag} className="meta-tag">
                               <Tag size={10} /> {tag}
                             </span>
