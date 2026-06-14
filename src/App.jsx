@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Check, Trash2, FolderDot, Sparkles } from 'lucide-react';
+import { Plus, Check, Trash2, FolderDot, Sparkles, Calendar, Tag, AlertCircle } from 'lucide-react';
 import './App.css';
 
 const API_URL = 'http://localhost:3001/api/tasks';
@@ -12,6 +12,9 @@ function App() {
   const [project, setProject] = useState('General');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const [priority, setPriority] = useState('medium');
+  const [dueDate, setDueDate] = useState('');
+  const [tagsInput, setTagsInput] = useState('');
 
   const fetchTasks = async () => {
     try {
@@ -33,18 +36,31 @@ function App() {
     e.preventDefault();
     if (!title.trim()) return;
 
+    const tagsArray = tagsInput.split(',').map(tag => tag.trim()).filter(tag => tag);
+
     try {
       const response = await fetch(API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ project, title, description, status: 'pending' })
+        body: JSON.stringify({ 
+          project, 
+          title, 
+          description, 
+          status: 'pending',
+          priority,
+          dueDate: dueDate || null,
+          tags: tagsArray
+        })
       });
       const newTask = await response.json();
       setTasks([...tasks, newTask]);
       
-      // Reset form (keep project same for convenience)
+      // Reset form
       setTitle('');
       setDescription('');
+      setTagsInput('');
+      setDueDate('');
+      setPriority('medium');
     } catch (error) {
       console.error("Failed to add task:", error);
     }
@@ -72,6 +88,20 @@ function App() {
     } catch (error) {
       console.error("Failed to delete task:", error);
     }
+  };
+
+  const getPriorityColor = (level) => {
+    switch(level) {
+      case 'high': return 'text-red-400 border-red-500/50 bg-red-500/10';
+      case 'medium': return 'text-yellow-400 border-yellow-500/50 bg-yellow-500/10';
+      case 'low': return 'text-blue-400 border-blue-500/50 bg-blue-500/10';
+      default: return 'text-gray-400 border-gray-500/50 bg-gray-500/10';
+    }
+  };
+
+  const isOverdue = (dateString) => {
+    if (!dateString) return false;
+    return new Date(dateString) < new Date(new Date().setHours(0,0,0,0));
   };
 
   // Group tasks by project
@@ -115,15 +145,46 @@ function App() {
                   required
                 />
               </div>
+              
+              <div className="form-row">
+                <div className="form-group half">
+                  <label>Priority</label>
+                  <select value={priority} onChange={(e) => setPriority(e.target.value)}>
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                  </select>
+                </div>
+                <div className="form-group half">
+                  <label>Due Date</label>
+                  <input 
+                    type="date" 
+                    value={dueDate} 
+                    onChange={(e) => setDueDate(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label>Tags (comma separated)</label>
+                <input 
+                  type="text" 
+                  value={tagsInput} 
+                  onChange={(e) => setTagsInput(e.target.value)}
+                  placeholder="e.g. bug, frontend, urgent"
+                />
+              </div>
+
               <div className="form-group">
                 <label>Details / Description</label>
                 <textarea 
                   value={description} 
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Any additional info..."
-                  rows={3}
+                  rows={2}
                 />
               </div>
+
               <button type="submit" className="btn-primary mt-2">
                 Add to Project
               </button>
@@ -155,7 +216,7 @@ function App() {
                   {tasksByProject[proj].map(task => (
                     <div 
                       key={task.id} 
-                      className={`glass-panel task-card ${task.status === 'completed' ? 'completed' : ''}`}
+                      className={`glass-panel task-card ${task.status === 'completed' ? 'completed' : ''} priority-${task.priority}`}
                     >
                       <button 
                         className={`status-btn ${task.status === 'completed' ? 'checked' : ''}`}
@@ -165,8 +226,27 @@ function App() {
                       </button>
                       
                       <div className="task-content">
-                        <div className="task-title">{task.title}</div>
+                        <div className="task-title-row">
+                          <span className="task-title">{task.title}</span>
+                          {task.priority === 'high' && <AlertCircle size={14} className="text-red-400" />}
+                        </div>
+                        
                         {task.description && <div className="task-desc">{task.description}</div>}
+                        
+                        <div className="task-meta">
+                          {task.dueDate && (
+                            <span className={`meta-item ${isOverdue(task.dueDate) && task.status !== 'completed' ? 'overdue' : ''}`}>
+                              <Calendar size={12} /> 
+                              {new Date(task.dueDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                            </span>
+                          )}
+                          
+                          {task.tags && task.tags.map(tag => (
+                            <span key={tag} className="meta-tag">
+                              <Tag size={10} /> {tag}
+                            </span>
+                          ))}
+                        </div>
                       </div>
 
                       <div className="task-actions">

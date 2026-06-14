@@ -43,6 +43,9 @@ app.post('/api/tasks', (req, res) => {
     title: req.body.title,
     description: req.body.description || '',
     status: req.body.status || 'pending',
+    priority: req.body.priority || 'medium',
+    dueDate: req.body.dueDate || null,
+    tags: req.body.tags || [],
     createdAt: new Date().toISOString()
   };
   tasks.push(newTask);
