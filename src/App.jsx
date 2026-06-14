@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Plus, Check, Trash2, FolderDot, Sparkles, Calendar, Tag, AlertCircle, GripVertical } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
+import Sidebar from './components/Sidebar';
+import ProjectColumn from './components/ProjectColumn';
 import './App.css';
 
 const API_URL = 'http://localhost:3001/api/tasks';
@@ -8,14 +10,6 @@ function App() {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [draggedTaskId, setDraggedTaskId] = useState(null);
-  
-  // Form State
-  const [project, setProject] = useState('General');
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [priority, setPriority] = useState('medium');
-  const [dueDate, setDueDate] = useState('');
-  const [tagsInput, setTagsInput] = useState('');
 
   const fetchTasks = async () => {
     try {
@@ -33,34 +27,15 @@ function App() {
     fetchTasks();
   }, []);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!title.trim()) return;
-
-    const tagsArray = tagsInput.split(',').map(tag => tag.trim()).filter(tag => tag);
-
+  const handleAddTask = async (newTaskData) => {
     try {
       const response = await fetch(API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          project, 
-          title, 
-          description, 
-          status: 'pending',
-          priority,
-          dueDate: dueDate || null,
-          tags: tagsArray
-        })
+        body: JSON.stringify(newTaskData)
       });
       const newTask = await response.json();
       setTasks([...tasks, newTask]);
-      
-      setTitle('');
-      setDescription('');
-      setTagsInput('');
-      setDueDate('');
-      setPriority('medium');
     } catch (error) {
       console.error("Failed to add task:", error);
     }
@@ -90,13 +65,11 @@ function App() {
     }
   };
 
-  // TODO: Future optimization - Check if @dnd-kit/core has released full React 19 support.
-  // If yes, we can replace this native HTML5 drag-and-drop with dnd-kit for better physics and animations.
+  // --- Drag and Drop Handlers ---
   const handleDragStart = (e, taskId) => {
     setDraggedTaskId(taskId);
     e.dataTransfer.setData('taskId', taskId);
     e.dataTransfer.effectAllowed = 'move';
-    // Add slight delay for visual ghost image to generate before setting opacity
     setTimeout(() => {
       e.target.style.opacity = '0.4';
     }, 0);
@@ -142,20 +115,6 @@ function App() {
     }
   };
 
-  const getPriorityClass = (level) => {
-    switch(level) {
-      case 'high': return 'priority-high';
-      case 'medium': return 'priority-medium';
-      case 'low': return 'priority-low';
-      default: return '';
-    }
-  };
-
-  const isOverdue = (dateString) => {
-    if (!dateString) return false;
-    return new Date(dateString) < new Date(new Date().setHours(0,0,0,0));
-  };
-
   // Group tasks by project
   const tasksByProject = tasks.reduce((acc, task) => {
     if (!acc[task.project]) acc[task.project] = [];
@@ -170,81 +129,8 @@ function App() {
       <h1><Sparkles className="inline-block mr-2 text-accent" size={36} /> OmniTask</h1>
       
       <div className="app-container">
-        {/* Sidebar / Add Task */}
-        <aside className="sidebar">
-          <div className="glass-panel animate-fade-in shadow-xl shadow-primary/10">
-            <h2 className="text-xl font-semibold mb-4 text-primary flex items-center gap-2">
-              <Plus size={20} /> New Task
-            </h2>
-            <form onSubmit={handleSubmit} className="add-task-form">
-              <div className="form-group">
-                <label>Project</label>
-                <input 
-                  type="text" 
-                  value={project} 
-                  onChange={(e) => setProject(e.target.value)}
-                  placeholder="e.g. My Website, API Service..."
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label>Task Title</label>
-                <input 
-                  type="text" 
-                  value={title} 
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="What needs to be done?"
-                  required
-                />
-              </div>
-              
-              <div className="form-row">
-                <div className="form-group half">
-                  <label>Priority</label>
-                  <select value={priority} onChange={(e) => setPriority(e.target.value)}>
-                    <option value="low">Low</option>
-                    <option value="medium">Medium</option>
-                    <option value="high">High</option>
-                  </select>
-                </div>
-                <div className="form-group half">
-                  <label>Due Date</label>
-                  <input 
-                    type="date" 
-                    value={dueDate} 
-                    onChange={(e) => setDueDate(e.target.value)}
-                  />
-                </div>
-              </div>
+        <Sidebar onAddTask={handleAddTask} />
 
-              <div className="form-group">
-                <label>Tags (comma separated)</label>
-                <input 
-                  type="text" 
-                  value={tagsInput} 
-                  onChange={(e) => setTagsInput(e.target.value)}
-                  placeholder="e.g. bug, frontend, urgent"
-                />
-              </div>
-
-              <div className="form-group">
-                <label>Details / Description</label>
-                <textarea 
-                  value={description} 
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Any additional info..."
-                  rows={2}
-                />
-              </div>
-
-              <button type="submit" className="btn-primary mt-2 flex items-center justify-center gap-2">
-                <Plus size={18} /> Add to {project}
-              </button>
-            </form>
-          </div>
-        </aside>
-
-        {/* Main Content / Task List */}
         <main className="main-content">
           {loading ? (
             <div className="glass-panel text-center p-8">Loading your tasks...</div>
@@ -256,69 +142,19 @@ function App() {
             </div>
           ) : (
             projects.map((proj) => (
-              <div 
-                key={proj} 
-                className="glass-panel project-section transition-all duration-200"
+              <ProjectColumn 
+                key={proj}
+                project={proj}
+                tasks={tasksByProject[proj]}
+                draggedTaskId={draggedTaskId}
+                onDragStart={handleDragStart}
+                onDragEnd={handleDragEnd}
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
-                onDrop={(e) => handleDrop(e, proj)}
-              >
-                <h3 className="project-title">
-                  <FolderDot className="text-accent" /> {proj}
-                </h3>
-                <div className="task-list min-h-[50px]">
-                  {tasksByProject[proj].map(task => (
-                    <div 
-                      key={task.id} 
-                      draggable="true"
-                      onDragStart={(e) => handleDragStart(e, task.id)}
-                      onDragEnd={handleDragEnd}
-                      className={`glass-panel task-card cursor-grab ${task.status === 'completed' ? 'completed' : ''} ${getPriorityClass(task.priority)} ${draggedTaskId === task.id ? 'opacity-50' : ''}`}
-                    >
-                      <div className="drag-handle text-gray-500 pt-1">
-                        <GripVertical size={16} />
-                      </div>
-
-                      <button 
-                        className={`status-btn ${task.status === 'completed' ? 'checked' : ''}`}
-                        onClick={() => toggleStatus(task)}
-                      >
-                        {task.status === 'completed' && <Check size={16} />}
-                      </button>
-                      
-                      <div className="task-content">
-                        <div className="task-title-row">
-                          <span className="task-title">{task.title}</span>
-                          {task.priority === 'high' && <AlertCircle size={14} className="text-red-400" />}
-                        </div>
-                        
-                        {task.description && <div className="task-desc">{task.description}</div>}
-                        
-                        <div className="task-meta">
-                          {task.dueDate && (
-                            <span className={`meta-item ${isOverdue(task.dueDate) && task.status !== 'completed' ? 'overdue' : ''}`}>
-                              <Calendar size={12} /> 
-                              {new Date(task.dueDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                            </span>
-                          )}
-                          
-                          {task.tags && task.tags.length > 0 && task.tags.map(tag => (
-                            <span key={tag} className="meta-tag">
-                              <Tag size={10} /> {tag}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div className="task-actions">
-                        <button className="btn-icon" onClick={() => deleteTask(task.id)}>
-                          <Trash2 size={18} />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
+                onDrop={handleDrop}
+                onToggleStatus={toggleStatus}
+                onDelete={deleteTask}
+              />
             ))
           )}
         </main>
