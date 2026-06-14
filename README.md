@@ -74,5 +74,4 @@ omni add "Emergency hotfix" -p "WebApp" --priority high
 omni list
 ```
 
----
-*Built with ❤️ and AI.*
+
