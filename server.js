@@ -35,6 +35,38 @@ const writeData = (data) => {
   fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
 };
 
+const SETTINGS_FILE = path.join(dataDir, 'settings.json');
+
+// Initialize settings file if it doesn't exist
+if (!fs.existsSync(SETTINGS_FILE)) {
+  fs.writeFileSync(SETTINGS_FILE, JSON.stringify({ openAtLogin: false }));
+}
+
+const readSettings = () => {
+  try {
+    return JSON.parse(fs.readFileSync(SETTINGS_FILE, 'utf8'));
+  } catch (e) {
+    return { openAtLogin: false };
+  }
+};
+
+const writeSettings = (settings) => {
+  fs.writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 2));
+};
+
+// Get settings
+app.get('/api/settings', (req, res) => {
+  res.json(readSettings());
+});
+
+// Update settings
+app.post('/api/settings', (req, res) => {
+  const current = readSettings();
+  const updated = { ...current, ...req.body };
+  writeSettings(updated);
+  res.json(updated);
+});
+
 // Get all tasks
 app.get('/api/tasks', (req, res) => {
   const tasks = readData();

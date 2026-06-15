@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Plus } from 'lucide-react';
 import Pomodoro from './Pomodoro';
+import Settings from './Settings';
 
 export default function Sidebar({ onAddTask }) {
   const [project, setProject] = useState('General');
@@ -110,6 +111,7 @@ export default function Sidebar({ onAddTask }) {
       </div>
 
       <Pomodoro />
+      <Settings />
     </aside>
   );
 }

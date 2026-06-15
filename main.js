@@ -2,6 +2,8 @@ import { app, BrowserWindow, globalShortcut, Tray, Menu, nativeImage } from 'ele
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { fork } from 'child_process';
+import fs from 'fs';
+import os from 'os';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -9,6 +11,23 @@ const __dirname = path.dirname(__filename);
 let mainWindow;
 let tray = null;
 let apiProcess = null;
+
+const dataDir = path.join(os.homedir(), '.omnitask');
+const settingsFile = path.join(dataDir, 'settings.json');
+
+function checkSettings() {
+  if (fs.existsSync(settingsFile)) {
+    try {
+      const settings = JSON.parse(fs.readFileSync(settingsFile, 'utf8'));
+      app.setLoginItemSettings({
+        openAtLogin: settings.openAtLogin || false,
+        path: app.getPath('exe')
+      });
+    } catch (e) {
+      console.error('Settings parse error:', e);
+    }
+  }
+}
 
 function startApiServer() {
   // Spawn the Express API server
@@ -78,6 +97,12 @@ app.whenReady().then(() => {
   startApiServer();
   createWindow();
   createTray();
+
+  checkSettings();
+
+  if (fs.existsSync(dataDir)) {
+    fs.watchFile(settingsFile, () => checkSettings());
+  }
 
   // Global shortcut to summon the app
   globalShortcut.register('CommandOrControl+Shift+T', () => {
