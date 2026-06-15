@@ -26,3 +26,4 @@ dist-ssr
 # App Data
 todos.json
 ROADMAP.md
+release/
