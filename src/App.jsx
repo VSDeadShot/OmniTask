@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, LayoutDashboard, BarChart3 } from 'lucide-react';
 import Sidebar from './components/Sidebar';
 import ProjectColumn from './components/ProjectColumn';
+import Analytics from './components/Analytics';
 import './App.css';
 
 const API_URL = 'http://localhost:3001/api/tasks';
@@ -10,6 +11,7 @@ function App() {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [draggedTaskId, setDraggedTaskId] = useState(null);
+  const [activeTab, setActiveTab] = useState('dashboard');
 
   const fetchTasks = async () => {
     try {
@@ -25,6 +27,9 @@ function App() {
 
   useEffect(() => {
     fetchTasks();
+    // Refresh periodically if cli changes it behind the scenes
+    const interval = setInterval(fetchTasks, 5000);
+    return () => clearInterval(interval);
   }, []);
 
   const handleAddTask = async (newTaskData) => {
@@ -65,7 +70,6 @@ function App() {
     }
   };
 
-  // --- Drag and Drop Handlers ---
   const handleDragStart = (e, taskId) => {
     setDraggedTaskId(taskId);
     e.dataTransfer.setData('taskId', taskId);
@@ -99,10 +103,8 @@ function App() {
     const task = tasks.find(t => t.id === taskId);
     if (!task || task.project === toProject) return;
 
-    // Optimistic Update
     setTasks(tasks.map(t => t.id === taskId ? { ...t, project: toProject } : t));
 
-    // Update Backend
     try {
       await fetch(`${API_URL}/${taskId}`, {
         method: 'PUT',
@@ -111,12 +113,13 @@ function App() {
       });
     } catch (error) {
       console.error("Failed to move task:", error);
-      fetchTasks(); // Revert
+      fetchTasks();
     }
   };
 
-  // Group tasks by project
-  const tasksByProject = tasks.reduce((acc, task) => {
+  // Group pending tasks for Dashboard view
+  const pendingTasks = tasks.filter(t => t.status !== 'completed');
+  const tasksByProject = pendingTasks.reduce((acc, task) => {
     if (!acc[task.project]) acc[task.project] = [];
     acc[task.project].push(task);
     return acc;
@@ -126,39 +129,59 @@ function App() {
 
   return (
     <>
-      <h1><Sparkles className="inline-block mr-2 text-accent" size={36} /> OmniTask</h1>
+      <header className="app-header">
+        <h1><Sparkles className="inline-block mr-2 text-accent" size={36} /> OmniTask</h1>
+        
+        <div className="nav-tabs">
+          <button 
+            className={`nav-btn ${activeTab === 'dashboard' ? 'active' : ''}`}
+            onClick={() => setActiveTab('dashboard')}
+          >
+            <LayoutDashboard size={18} /> Dashboard
+          </button>
+          <button 
+            className={`nav-btn ${activeTab === 'analytics' ? 'active' : ''}`}
+            onClick={() => setActiveTab('analytics')}
+          >
+            <BarChart3 size={18} /> Analytics
+          </button>
+        </div>
+      </header>
       
-      <div className="app-container">
-        <Sidebar onAddTask={handleAddTask} />
-
-        <main className="main-content">
-          {loading ? (
-            <div className="glass-panel text-center p-8">Loading your tasks...</div>
-          ) : projects.length === 0 ? (
-            <div className="glass-panel empty-state animate-fade-in">
-              <Sparkles size={48} className="mx-auto mb-4 opacity-50" />
-              <h3>All caught up!</h3>
-              <p>Add a task to start tracking your cross-project work.</p>
-            </div>
-          ) : (
-            projects.map((proj) => (
-              <ProjectColumn 
-                key={proj}
-                project={proj}
-                tasks={tasksByProject[proj]}
-                draggedTaskId={draggedTaskId}
-                onDragStart={handleDragStart}
-                onDragEnd={handleDragEnd}
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
-                onToggleStatus={toggleStatus}
-                onDelete={deleteTask}
-              />
-            ))
-          )}
-        </main>
-      </div>
+      {activeTab === 'dashboard' ? (
+        <div className="app-container">
+          <Sidebar onAddTask={handleAddTask} />
+          <main className="main-content">
+            {loading ? (
+              <div className="glass-panel text-center p-8">Loading your tasks...</div>
+            ) : projects.length === 0 ? (
+              <div className="glass-panel empty-state animate-fade-in">
+                <Sparkles size={48} className="mx-auto mb-4 opacity-50" />
+                <h3>All caught up!</h3>
+                <p>Add a task to start tracking your cross-project work.</p>
+              </div>
+            ) : (
+              projects.map((proj) => (
+                <ProjectColumn 
+                  key={proj}
+                  project={proj}
+                  tasks={tasksByProject[proj]}
+                  draggedTaskId={draggedTaskId}
+                  onDragStart={handleDragStart}
+                  onDragEnd={handleDragEnd}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                  onToggleStatus={toggleStatus}
+                  onDelete={deleteTask}
+                />
+              ))
+            )}
+          </main>
+        </div>
+      ) : (
+        <Analytics tasks={tasks} />
+      )}
     </>
   );
 }
