@@ -4,12 +4,19 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
+import os from 'os';
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = 3001;
-const DATA_FILE = path.join(__dirname, 'todos.json');
+const homeDir = os.homedir();
+const dataDir = path.join(homeDir, '.omnitask');
+if (!fs.existsSync(dataDir)) {
+  fs.mkdirSync(dataDir);
+}
+const DATA_FILE = path.join(dataDir, 'todos.json');
 
 app.use(cors());
 app.use(express.json());
