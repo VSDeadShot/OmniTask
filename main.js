@@ -1,4 +1,4 @@
-import { app, BrowserWindow, globalShortcut, Tray, Menu, nativeImage } from 'electron';
+import { app, BrowserWindow, globalShortcut, Tray, Menu, nativeImage, Notification } from 'electron';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { fork } from 'child_process';
@@ -14,6 +14,9 @@ let apiProcess = null;
 
 const dataDir = path.join(os.homedir(), '.omnitask');
 const settingsFile = path.join(dataDir, 'settings.json');
+const todosFile = path.join(dataDir, 'todos.json');
+
+let notifiedTasks = new Set();
 
 function checkSettings() {
   if (fs.existsSync(settingsFile)) {
@@ -27,6 +30,37 @@ function checkSettings() {
       console.error('Settings parse error:', e);
     }
   }
+}
+
+function startNotificationService() {
+  setInterval(() => {
+    if (!fs.existsSync(todosFile)) return;
+    try {
+      const tasks = JSON.parse(fs.readFileSync(todosFile, 'utf8'));
+      const today = new Date().setHours(0,0,0,0);
+      
+      tasks.forEach(task => {
+        if (task.status === 'completed' || !task.dueDate) return;
+        const taskDate = new Date(task.dueDate).setHours(0,0,0,0);
+        
+        if (taskDate === today && !notifiedTasks.has(task.id)) {
+          new Notification({
+            title: 'OmniTask Reminder',
+            body: `Task Due Today: ${task.title}`
+          }).show();
+          notifiedTasks.add(task.id);
+        } else if (taskDate < today && !notifiedTasks.has(task.id + '_overdue')) {
+          new Notification({
+            title: 'OmniTask - Overdue!',
+            body: `Overdue Task: ${task.title}`
+          }).show();
+          notifiedTasks.add(task.id + '_overdue');
+        }
+      });
+    } catch (e) {
+      console.error('Notification error:', e);
+    }
+  }, 60000); // Check every minute
 }
 
 function startApiServer() {
@@ -99,6 +133,7 @@ app.whenReady().then(() => {
   createTray();
 
   checkSettings();
+  startNotificationService();
 
   if (fs.existsSync(dataDir)) {
     fs.watchFile(settingsFile, () => checkSettings());
