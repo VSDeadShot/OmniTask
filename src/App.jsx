@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Sparkles, LayoutDashboard, BarChart3 } from 'lucide-react';
+import { Sparkles, LayoutDashboard, BarChart3, CheckCircle2, Trash2 } from 'lucide-react';
 import Sidebar from './components/Sidebar';
 import ProjectColumn from './components/ProjectColumn';
 import Analytics from './components/Analytics';
@@ -125,6 +125,7 @@ function App() {
     return acc;
   }, {});
 
+  const completedTasks = tasks.filter(t => t.status === 'completed');
   const projects = Object.keys(tasksByProject).sort();
 
   return (
@@ -138,6 +139,12 @@ function App() {
             onClick={() => setActiveTab('dashboard')}
           >
             <LayoutDashboard size={18} /> Dashboard
+          </button>
+          <button 
+            className={`nav-btn ${activeTab === 'completed' ? 'active' : ''}`}
+            onClick={() => setActiveTab('completed')}
+          >
+            <CheckCircle2 size={18} /> Completed
           </button>
           <button 
             className={`nav-btn ${activeTab === 'analytics' ? 'active' : ''}`}
@@ -178,6 +185,42 @@ function App() {
               ))
             )}
           </main>
+        </div>
+      ) : activeTab === 'completed' ? (
+        <div className="completed-view">
+          <div className="glass-panel p-6">
+            <h2 className="project-title mb-4"><CheckCircle2 className="text-success" /> Completed Tasks</h2>
+            {completedTasks.length === 0 ? (
+              <div className="empty-state">No completed tasks yet.</div>
+            ) : (
+              <div className="task-list">
+                {completedTasks.map(task => (
+                  <div key={task.id} className="glass-panel task-card completed p-4">
+                    <button 
+                      className="status-btn checked"
+                      onClick={() => toggleStatus(task)}
+                    >
+                      <CheckCircle2 size={16} />
+                    </button>
+                    <div className="task-content">
+                      <div className="task-title-row">
+                        <span className="task-title">{task.title}</span>
+                      </div>
+                      <div className="task-meta">
+                        <span className="meta-item">{task.project}</span>
+                        {task.dueDate && <span className="meta-item">{task.dueDate}</span>}
+                      </div>
+                    </div>
+                    <div className="task-actions">
+                      <button className="status-btn" style={{color: '#f87171', borderColor: 'rgba(248,113,113,0.2)'}} onClick={() => deleteTask(task.id)}>
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       ) : (
         <Analytics tasks={tasks} />

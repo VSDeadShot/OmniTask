@@ -1,4 +1,4 @@
-import { Check, Trash2, Calendar, Tag, AlertCircle, GripVertical } from 'lucide-react';
+import { Check, CheckCircle2, Trash2, Calendar, Tag, AlertCircle, GripVertical } from 'lucide-react';
 
 export default function TaskCard({ task, draggedTaskId, onDragStart, onDragEnd, onToggleStatus, onDelete }) {
   const getPriorityClass = (level) => {
@@ -57,8 +57,19 @@ export default function TaskCard({ task, draggedTaskId, onDragStart, onDragEnd, 
         </div>
       </div>
 
-      <div className="task-actions">
-        <button className="btn-icon" onClick={() => onDelete(task.id)}>
+      <div className="task-actions flex gap-2">
+        <button 
+          className="btn-icon text-green-500 hover:text-green-400" 
+          onClick={() => onToggleStatus(task)}
+          title={task.status === 'completed' ? "Mark Pending" : "Mark Done"}
+        >
+          <CheckCircle2 size={18} />
+        </button>
+        <button 
+          className="btn-icon text-red-500 hover:text-red-400" 
+          onClick={() => onDelete(task.id)}
+          title="Delete Task"
+        >
           <Trash2 size={18} />
         </button>
       </div>
