@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Settings as SettingsIcon } from 'lucide-react';
 
 const MODES = {
   pomodoro: { time: 25 * 60, label: 'Pomodoro', color: '#f43f5e', shadow: 'rgba(244, 63, 94, 0.2)' },
@@ -6,11 +7,31 @@ const MODES = {
   longBreak: { time: 15 * 60, label: 'Long Break', color: '#3b82f6', shadow: 'rgba(59, 130, 246, 0.2)' }
 };
 
-export default function Pomodoro() {
+export default function Pomodoro({ onOpenSettings }) {
   const [mode, setMode] = useState('pomodoro');
-  const [timeLeft, setTimeLeft] = useState(MODES.pomodoro.time);
+  const [timeLeft, setTimeLeft] = useState(25 * 60);
   const [isActive, setIsActive] = useState(false);
   const [session, setSession] = useState(1);
+  const [timings, setTimings] = useState({
+    pomodoro: 25 * 60,
+    shortBreak: 5 * 60,
+    longBreak: 15 * 60
+  });
+
+  useEffect(() => {
+    fetch('http://localhost:3001/api/settings')
+      .then(res => res.json())
+      .then(data => {
+        const p = (data.pomodoroTime || 25) * 60;
+        const s = (data.shortBreakTime || 5) * 60;
+        const l = (data.longBreakTime || 15) * 60;
+        setTimings({ pomodoro: p, shortBreak: s, longBreak: l });
+        if (!isActive) {
+          setTimeLeft(mode === 'pomodoro' ? p : mode === 'shortBreak' ? s : l);
+        }
+      })
+      .catch(console.error);
+  }, []); // Fetch once on mount
 
   useEffect(() => {
     let interval = null;
@@ -43,7 +64,7 @@ export default function Pomodoro() {
 
   const switchMode = (newMode) => {
     setMode(newMode);
-    setTimeLeft(MODES[newMode].time);
+    setTimeLeft(timings[newMode]);
     setIsActive(false);
   };
 
@@ -113,6 +134,18 @@ export default function Pomodoro() {
         <div className="pomodoro-status-text text-center">
           <div style={{ color: MODES[mode].color, fontWeight: 'bold' }}>#{session}</div>
           <div>{getStatusText()}</div>
+          <button 
+            onClick={onOpenSettings}
+            style={{
+              background: 'transparent', border: 'none', color: 'var(--text-muted)', 
+              marginTop: '1rem', cursor: 'pointer', display: 'flex', alignItems: 'center', 
+              justifyContent: 'center', gap: '0.5rem', margin: '1rem auto 0 auto',
+              fontSize: '0.85rem'
+            }}
+            title="Configure Timings"
+          >
+            <SettingsIcon size={16} /> Configure Timings
+          </button>
         </div>
       </div>
     </div>

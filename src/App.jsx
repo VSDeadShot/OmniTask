@@ -302,7 +302,7 @@ function App() {
         </div>
       ) : activeTab === 'focus' ? (
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '75vh' }}>
-          <Pomodoro />
+          <Pomodoro onOpenSettings={() => setIsSettingsOpen(true)} />
         </div>
       ) : (
         <Analytics tasks={tasks} />
