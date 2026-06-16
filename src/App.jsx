@@ -97,6 +97,21 @@ function App() {
     }
   };
 
+  const clearCompletedTasks = async () => {
+    if (completedTasks.length === 0) return;
+    
+    try {
+      const deletePromises = completedTasks.map(task => 
+        fetch(`${API_URL}/${task.id}`, { method: 'DELETE' })
+      );
+      await Promise.all(deletePromises);
+      
+      setTasks(currentTasks => currentTasks.filter(t => t.status !== 'completed'));
+    } catch (error) {
+      console.error("Failed to clear completed tasks:", error);
+    }
+  };
+
   const handleDragStart = (e, taskId) => {
     setDraggedTaskId(taskId);
     e.dataTransfer.setData('taskId', taskId);
@@ -231,7 +246,28 @@ function App() {
       ) : activeTab === 'completed' ? (
         <div className="completed-view">
           <div className="glass-panel p-6">
-            <h2 className="project-title mb-4"><CheckCircle2 className="text-success" /> Completed Tasks</h2>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '0.5rem' }}>
+              <h2 className="project-title" style={{ margin: 0, padding: 0, border: 'none', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <CheckCircle2 className="text-success" /> Completed Tasks
+              </h2>
+              {completedTasks.length > 0 && (
+                <button 
+                  className="check-all-btn"
+                  style={{ 
+                    display: 'flex', alignItems: 'center', gap: '0.25rem', 
+                    fontSize: '0.75rem', fontWeight: 500, color: 'var(--text-muted)', 
+                    background: 'transparent', border: 'none', cursor: 'pointer',
+                    transition: 'color 0.2s ease'
+                  }}
+                  onMouseOver={(e) => e.currentTarget.style.color = '#ef4444'}
+                  onMouseOut={(e) => e.currentTarget.style.color = 'var(--text-muted)'}
+                  onClick={clearCompletedTasks}
+                  title="Delete all completed tasks"
+                >
+                  <Trash2 size={14} /> Clear History
+                </button>
+              )}
+            </div>
             {completedTasks.length === 0 ? (
               <div className="empty-state">No completed tasks yet.</div>
             ) : (
