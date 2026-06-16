@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Sparkles, LayoutDashboard, BarChart3, CheckCircle2, Trash2 } from 'lucide-react';
+import { Sparkles, LayoutDashboard, BarChart3, CheckCircle2, Trash2, Settings as SettingsIcon } from 'lucide-react';
 import Sidebar from './components/Sidebar';
 import ProjectColumn from './components/ProjectColumn';
 import Analytics from './components/Analytics';
+import Settings from './components/Settings';
 import './App.css';
 
 const API_URL = 'http://localhost:3001/api/tasks';
@@ -12,6 +13,7 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [draggedTaskId, setDraggedTaskId] = useState(null);
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const fetchTasks = async () => {
     try {
@@ -152,6 +154,14 @@ function App() {
           >
             <BarChart3 size={18} /> Analytics
           </button>
+          <div style={{ width: '1px', height: '24px', backgroundColor: 'rgba(255,255,255,0.1)', margin: '0 8px' }}></div>
+          <button 
+            className="nav-btn"
+            onClick={() => setIsSettingsOpen(true)}
+            title="Settings"
+          >
+            <SettingsIcon size={18} />
+          </button>
         </div>
       </header>
       
@@ -225,6 +235,8 @@ function App() {
       ) : (
         <Analytics tasks={tasks} />
       )}
+      
+      <Settings isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
     </>
   );
 }
