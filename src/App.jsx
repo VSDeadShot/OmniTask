@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Sparkles, LayoutDashboard, BarChart3, CheckCircle2, Trash2, Settings as SettingsIcon } from 'lucide-react';
+import { Sparkles, LayoutDashboard, BarChart3, CheckCircle2, Trash2, Settings as SettingsIcon, Timer } from 'lucide-react';
 import Sidebar from './components/Sidebar';
 import ProjectColumn from './components/ProjectColumn';
 import Analytics from './components/Analytics';
 import Settings from './components/Settings';
+import Pomodoro from './components/Pomodoro';
 import './App.css';
 
 const API_URL = 'http://localhost:3001/api/tasks';
@@ -154,6 +155,12 @@ function App() {
           >
             <BarChart3 size={18} /> Analytics
           </button>
+          <button 
+            className={`nav-btn ${activeTab === 'focus' ? 'active' : ''}`}
+            onClick={() => setActiveTab('focus')}
+          >
+            <Timer size={18} /> Focus
+          </button>
           <div style={{ width: '1px', height: '24px', backgroundColor: 'rgba(255,255,255,0.1)', margin: '0 8px' }}></div>
           <button 
             className="nav-btn"
@@ -231,6 +238,10 @@ function App() {
               </div>
             )}
           </div>
+        </div>
+      ) : activeTab === 'focus' ? (
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '75vh' }}>
+          <Pomodoro />
         </div>
       ) : (
         <Analytics tasks={tasks} />

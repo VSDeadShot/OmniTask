@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { Plus } from 'lucide-react';
-import Pomodoro from './Pomodoro';
 
 export default function Sidebar({ onAddTask }) {
   const [project, setProject] = useState('General');
@@ -108,8 +107,6 @@ export default function Sidebar({ onAddTask }) {
           </button>
         </form>
       </div>
-
-      <Pomodoro />
     </aside>
   );
 }
