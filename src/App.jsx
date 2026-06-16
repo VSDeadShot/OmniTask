@@ -64,6 +64,30 @@ function App() {
     }
   };
 
+  const completeProjectTasks = async (project) => {
+    const projectTasks = tasks.filter(t => t.project === project && t.status === 'pending');
+    if (projectTasks.length === 0) return;
+    
+    try {
+      const updatedPromises = projectTasks.map(task => 
+        fetch(`${API_URL}/${task.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'completed' })
+        }).then(res => res.json())
+      );
+      
+      const updatedTasks = await Promise.all(updatedPromises);
+      
+      setTasks(currentTasks => currentTasks.map(t => {
+        const updated = updatedTasks.find(ut => ut.id === t.id);
+        return updated ? updated : t;
+      }));
+    } catch (error) {
+      console.error("Failed to bulk update tasks:", error);
+    }
+  };
+
   const deleteTask = async (id) => {
     try {
       await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
@@ -198,6 +222,7 @@ function App() {
                   onDrop={handleDrop}
                   onToggleStatus={toggleStatus}
                   onDelete={deleteTask}
+                  onCompleteAll={() => completeProjectTasks(proj)}
                 />
               ))
             )}
