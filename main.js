@@ -83,7 +83,7 @@ function createWindow() {
       nodeIntegration: true,
       contextIsolation: false
     },
-    icon: path.join(__dirname, 'public/favicon.svg')
+    icon: path.join(__dirname, 'build/icon.png')
   });
 
   if (!app.isPackaged) {
@@ -108,8 +108,8 @@ function createWindow() {
 }
 
 function createTray() {
-  // Using an empty icon or the favicon if supported
-  const icon = nativeImage.createEmpty(); 
+  const iconPath = path.join(__dirname, 'build/icon.png');
+  const icon = nativeImage.createFromPath(iconPath);
   tray = new Tray(icon);
   tray.setToolTip('OmniTask');
   

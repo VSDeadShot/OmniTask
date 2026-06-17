@@ -173,7 +173,7 @@ function App() {
   return (
     <>
       <header className="app-header">
-        <h1><Sparkles className="inline-block mr-2 text-accent" size={36} /> OmniTask</h1>
+        <h1><img src="/icon.png" alt="OmniTask Logo" className="inline-block mr-2" style={{ width: '36px', height: '36px', borderRadius: '8px', verticalAlign: 'middle' }} /> OmniTask</h1>
         
         <div className="nav-tabs">
           <button 
