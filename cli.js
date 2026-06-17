@@ -132,10 +132,25 @@ if (command === 'add') {
 } else if (command === 'clear') {
     let tasks = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
     const initialCount = tasks.length;
+    
+    // Create a backup before clearing
+    fs.writeFileSync(DATA_FILE + '.backup', JSON.stringify(tasks, null, 2));
+    
     tasks = tasks.filter(t => t.status !== 'completed');
     const removed = initialCount - tasks.length;
     fs.writeFileSync(DATA_FILE, JSON.stringify(tasks, null, 2));
-    console.log(`🧹 Cleared ${removed} completed task(s)!`);
+    console.log(`🧹 Cleared ${removed} completed task(s)! (Run 'omni undo' if this was a mistake)`);
+} else if (command === 'undo') {
+    const backupFile = DATA_FILE + '.backup';
+    if (fs.existsSync(backupFile)) {
+        const backupData = fs.readFileSync(backupFile, 'utf8');
+        fs.writeFileSync(DATA_FILE, backupData);
+        // Optionally clear the backup so you can't undo multiple times confusingly
+        fs.unlinkSync(backupFile);
+        console.log("↩️  Undo successful! Restored your tasks to exactly how they were before clearing.");
+    } else {
+        console.error("❌ No recent clear action found to undo.");
+    }
 } else if (command === 'start') {
     import('child_process').then(({ spawn }) => {
         const appPath = path.join(os.homedir(), 'AppData', 'Local', 'Programs', 'todoapp', 'OmniTask.exe');
@@ -195,6 +210,7 @@ Usage:
   omni list                                            Lists pending tasks
   omni open                                            Opens the interactive terminal menu
   omni clear                                           Deletes all completed tasks
+  omni undo                                            Restores tasks accidentally cleared
   omni start                                           Launches the OmniTask desktop app
   omni stats                                           Shows productivity statistics
   omni today                                           Shows tasks due today or overdue
