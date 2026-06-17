@@ -129,6 +129,63 @@ if (command === 'add') {
     console.log("");
 } else if (command === 'open') {
     runInteractiveMenu();
+} else if (command === 'clear') {
+    let tasks = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
+    const initialCount = tasks.length;
+    tasks = tasks.filter(t => t.status !== 'completed');
+    const removed = initialCount - tasks.length;
+    fs.writeFileSync(DATA_FILE, JSON.stringify(tasks, null, 2));
+    console.log(`🧹 Cleared ${removed} completed task(s)!`);
+} else if (command === 'start') {
+    import('child_process').then(({ spawn }) => {
+        const appPath = path.join(os.homedir(), 'AppData', 'Local', 'Programs', 'todoapp', 'OmniTask.exe');
+        if (fs.existsSync(appPath)) {
+            const child = spawn(appPath, [], {
+                detached: true,
+                stdio: 'ignore'
+            });
+            child.unref();
+            console.log("🚀 Launching OmniTask...");
+            process.exit(0);
+        } else {
+            console.error("❌ Could not find OmniTask.exe in the default installation path.");
+            process.exit(1);
+        }
+    });
+} else if (command === 'stats') {
+    const tasks = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
+    const pending = tasks.filter(t => t.status === 'pending');
+    const completed = tasks.filter(t => t.status === 'completed');
+    const today = new Date().setHours(0,0,0,0);
+    const overdue = pending.filter(t => t.dueDate && new Date(t.dueDate).setHours(0,0,0,0) < today);
+    console.log("\n📊 OmniTask Productivity Stats");
+    console.log("------------------------------");
+    console.log(`📌 Pending:   ${pending.length}`);
+    console.log(`✅ Completed: ${completed.length}`);
+    console.log(`⚠️  Overdue:   ${overdue.length}`);
+    console.log("");
+} else if (command === 'today') {
+    const tasks = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
+    const today = new Date().setHours(0,0,0,0);
+    const pending = tasks.filter(t => t.status === 'pending');
+    const dueToday = pending.filter(t => {
+        if (!t.dueDate) return false;
+        const d = new Date(t.dueDate).setHours(0,0,0,0);
+        return d <= today;
+    });
+    
+    if (dueToday.length === 0) {
+        console.log("✨ Nothing due today! You're all clear.");
+    } else {
+        console.log("\n📅 Due Today & Overdue\n");
+        dueToday.forEach(t => {
+            const priorityIcon = t.priority === 'high' ? '🔴' : t.priority === 'low' ? '🔵' : '🟡';
+            const d = new Date(t.dueDate).setHours(0,0,0,0);
+            const statusStr = d < today ? " (⚠️ OVERDUE)" : "";
+            console.log(`${priorityIcon} [${t.project}] ${t.title}${statusStr}`);
+        });
+        console.log("");
+    }
 } else {
     console.log(`
 OmniTask CLI
@@ -137,5 +194,9 @@ Usage:
   omni add "Task Name" [-p "Project"] [--priority high]  Adds a new task
   omni list                                            Lists pending tasks
   omni open                                            Opens the interactive terminal menu
+  omni clear                                           Deletes all completed tasks
+  omni start                                           Launches the OmniTask desktop app
+  omni stats                                           Shows productivity statistics
+  omni today                                           Shows tasks due today or overdue
     `);
 }
