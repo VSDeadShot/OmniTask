@@ -1,26 +1,29 @@
 # 🚀 OmniTask
 
-OmniTask is a centralized, developer-focused task manager designed to keep track of your to-dos across multiple projects. It features a beautiful React-based dashboard and a global CLI, allowing you to seamlessly manage your tasks without ever leaving your terminal or IDE.
+OmniTask is a powerful, centralized, and developer-focused task manager designed to keep track of your to-dos across multiple projects. It features a beautiful React-based desktop dashboard built with Electron, and a comprehensive global CLI, allowing you to seamlessly manage your tasks without ever leaving your terminal or IDE.
 
 ## ✨ Features
 
-- **Multi-Project Organization**: Group your tasks by project buckets.
-- **Global CLI Integration**: Add or view tasks from any directory on your computer using the `omni` command.
-- **Drag and Drop**: Reorganize tasks or move them between projects seamlessly using HTML5 native drag-and-drop.
-- **Power User Tools**: Support for task priority levels (High, Medium, Low), Due Dates, and Tags (e.g., `#bug`, `#frontend`).
-- **Premium UI**: Built with React, featuring a sleek dark mode, glassmorphism design, and smooth animations.
-- **Local Data Storage**: All your data is safely stored in a local `todos.json` file. No database setup required!
+- **Native Desktop App**: Built with Electron, runs seamlessly as a standalone desktop application.
+- **Global CLI Integration**: Manage tasks instantly from any directory using the `omni` command.
+- **Advanced UI Dashboard**: A sleek, dark-themed glassmorphism interface built with React.
+- **Drag & Drop Kanban**: Visually reorganize tasks and move them between project columns natively.
+- **Productivity Tools**: Built-in Pomodoro timer to help you focus and execute tasks efficiently.
+- **Analytics Dashboard**: Interactive charts tracking your completed tasks and productivity over time.
+- **Smart Notifications**: Desktop notifications for tasks due today and overdue alerts.
+- **Background Sync**: Both the UI and CLI read from the same `~/.omnitask/todos.json` file in real-time.
+- **Customization**: Boot-on-startup settings, priority tags, custom aesthetics, and dark-mode native date pickers.
 
 ## 🛠️ Tech Stack
 
+- **Desktop Framework**: Electron
 - **Frontend**: React 19, Vite, Vanilla CSS
-- **Backend**: Express.js (Local File System API)
+- **Backend API**: Express.js (Local File System API)
+- **Data Persistence**: Local JSON files (No database required!)
+- **CLI**: Node.js & Inquirer.js
 - **Icons**: Lucide React
 
 ## 🚀 Getting Started
-
-### Prerequisites
-Make sure you have [Node.js](https://nodejs.org/) installed on your machine.
 
 ### Installation
 
@@ -40,38 +43,71 @@ Make sure you have [Node.js](https://nodejs.org/) installed on your machine.
    npm link
    ```
 
-### Running the App
+### Building the Desktop App
 
-To spin up both the React dashboard and the local API backend simultaneously, run:
+To compile and build the `.exe` installer for OmniTask:
 
 ```bash
-npm run dev
+npm run electron:build
 ```
+This will output a setup executable in the `release/` folder.
 
-Your dashboard will be available at `http://localhost:5173`.
+### Development Mode
+
+To run the app locally with hot-reloading:
+
+```bash
+npm run electron:dev
+```
 
 ## 💻 Using the CLI
 
-Once you've run `npm link`, you can interact with OmniTask directly from your terminal, no matter what folder you are in!
+Once you've run `npm link` (or installed the app), you can interact with OmniTask directly from your terminal, no matter what folder you are in! The CLI instantly synchronizes with the desktop app.
 
-**Add a generic task:**
-```bash
-omni add "Buy coffee"
-```
+### Core Commands
 
-**Add a task to a specific project:**
-```bash
-omni add "Fix database schema" -p "BackendApp"
-```
+- **Add a generic task:**
+  ```bash
+  omni add "Buy coffee"
+  ```
+- **Add a task to a specific project with priority:**
+  ```bash
+  omni add "Emergency hotfix" -p "WebApp" --priority high
+  ```
+- **List pending tasks:**
+  ```bash
+  omni list
+  ```
+- **Interactive Menu:**
+  Launch an interactive terminal UI to mark tasks as complete or delete them using your arrow keys.
+  ```bash
+  omni open
+  ```
 
-**Add a high-priority task:**
-```bash
-omni add "Emergency hotfix" -p "WebApp" --priority high
-```
+### Productivity & Management Commands
 
-**List all pending tasks:**
-```bash
-omni list
-```
-
-
+- **Launch the App:**
+  Instantly launch the OmniTask desktop GUI directly from your terminal.
+  ```bash
+  omni start
+  ```
+- **View Stats:**
+  Print out a quick text summary of your productivity (Pending, Completed, Overdue).
+  ```bash
+  omni stats
+  ```
+- **Today's Agenda:**
+  Filter and view only the tasks that are due today or are overdue.
+  ```bash
+  omni today
+  ```
+- **Clear Junk:**
+  Permanently delete all tasks marked as "completed" to clean up your data file.
+  ```bash
+  omni clear
+  ```
+- **Safety Net / Undo:**
+  Accidentally ran `omni clear`? Restore your entire task history to the exact state it was before you cleared it!
+  ```bash
+  omni undo
+  ```
