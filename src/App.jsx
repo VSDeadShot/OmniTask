@@ -5,6 +5,7 @@ import ProjectColumn from './components/ProjectColumn';
 import Analytics from './components/Analytics';
 import Settings from './components/Settings';
 import Pomodoro from './components/Pomodoro';
+import appIcon from './assets/icon.png';
 import './App.css';
 
 const API_URL = 'http://localhost:3001/api/tasks';
@@ -173,7 +174,7 @@ function App() {
   return (
     <>
       <header className="app-header">
-        <h1><img src="/icon.png" alt="OmniTask Logo" className="inline-block mr-2" style={{ width: '36px', height: '36px', borderRadius: '8px', verticalAlign: 'middle' }} /> OmniTask</h1>
+        <h1><img src={appIcon} alt="OmniTask Logo" className="inline-block mr-2" style={{ width: '36px', height: '36px', borderRadius: '8px', verticalAlign: 'middle' }} /> OmniTask</h1>
         
         <div className="nav-tabs">
           <button 
