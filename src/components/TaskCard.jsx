@@ -1,6 +1,10 @@
+import { useState } from 'react';
 import { Check, CheckCircle2, Trash2, Calendar, Tag, AlertCircle, GripVertical } from 'lucide-react';
 
 export default function TaskCard({ task, draggedTaskId, onDragStart, onDragEnd, onToggleStatus, onUpdateTask, onDelete }) {
+  const [isEditingDesc, setIsEditingDesc] = useState(false);
+  const [descValue, setDescValue] = useState(task.description || '');
+
   const getPriorityClass = (level) => {
     switch(level) {
       case 'high': return 'priority-high';
@@ -15,10 +19,24 @@ export default function TaskCard({ task, draggedTaskId, onDragStart, onDragEnd, 
     return new Date(dateString) < new Date(new Date().setHours(0,0,0,0));
   };
 
+  const handleDescBlur = () => {
+    setIsEditingDesc(false);
+    if (descValue !== task.description) {
+      onUpdateTask(task.id, { description: descValue });
+    }
+  };
+
+  const handleDescKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      e.target.blur();
+    }
+  };
+
   return (
     <div 
-      draggable="true"
-      onDragStart={(e) => onDragStart(e, task.id)}
+      draggable={!isEditingDesc ? "true" : "false"}
+      onDragStart={(e) => { if(!isEditingDesc) onDragStart(e, task.id); }}
       onDragEnd={onDragEnd}
       className={`glass-panel task-card cursor-grab ${task.status === 'completed' ? 'completed' : ''} ${getPriorityClass(task.priority)} ${draggedTaskId === task.id ? 'opacity-50' : ''}`}
     >
@@ -39,7 +57,30 @@ export default function TaskCard({ task, draggedTaskId, onDragStart, onDragEnd, 
           {task.priority === 'high' && <AlertCircle size={14} className="text-red-400" />}
         </div>
         
-        {task.description && <div className="task-desc">{task.description}</div>}
+        {isEditingDesc ? (
+          <textarea
+            className="task-desc-input"
+            value={descValue}
+            onChange={(e) => setDescValue(e.target.value)}
+            onBlur={handleDescBlur}
+            onKeyDown={handleDescKeyDown}
+            autoFocus
+            style={{ 
+              width: '100%', background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.1)', 
+              color: 'var(--text-muted)', borderRadius: '4px', padding: '4px', fontSize: '0.85rem', 
+              resize: 'none', minHeight: '40px', outline: 'none' 
+            }}
+          />
+        ) : (
+          <div 
+            className="task-desc" 
+            onClick={() => setIsEditingDesc(true)}
+            style={{ cursor: 'text', minHeight: task.description ? 'auto' : '20px' }}
+            title="Click to edit description"
+          >
+            {task.description || <span style={{ opacity: 0.3, fontStyle: 'italic' }}>Add description...</span>}
+          </div>
+        )}
         
         <div className="task-meta">
           {task.dueDate ? (
