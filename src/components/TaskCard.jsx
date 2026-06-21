@@ -1,6 +1,6 @@
 import { Check, CheckCircle2, Trash2, Calendar, Tag, AlertCircle, GripVertical } from 'lucide-react';
 
-export default function TaskCard({ task, draggedTaskId, onDragStart, onDragEnd, onToggleStatus, onDelete }) {
+export default function TaskCard({ task, draggedTaskId, onDragStart, onDragEnd, onToggleStatus, onUpdateTask, onDelete }) {
   const getPriorityClass = (level) => {
     switch(level) {
       case 'high': return 'priority-high';
@@ -42,11 +42,32 @@ export default function TaskCard({ task, draggedTaskId, onDragStart, onDragEnd, 
         {task.description && <div className="task-desc">{task.description}</div>}
         
         <div className="task-meta">
-          {task.dueDate && (
-            <span className={`meta-item ${isOverdue(task.dueDate) && task.status !== 'completed' ? 'overdue' : ''}`}>
-              <Calendar size={12} /> 
-              {new Date(task.dueDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-            </span>
+          {task.dueDate ? (
+            <div style={{ position: 'relative', display: 'inline-block' }}>
+              <span className={`meta-item ${isOverdue(task.dueDate) && task.status !== 'completed' ? 'overdue' : ''}`} style={{ cursor: 'pointer' }}>
+                <Calendar size={12} /> 
+                {new Date(task.dueDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+              </span>
+              <input 
+                type="date" 
+                title="Change Deadline"
+                value={new Date(task.dueDate).toISOString().split('T')[0]}
+                onChange={(e) => onUpdateTask(task.id, { dueDate: e.target.value || null })}
+                style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer' }}
+              />
+            </div>
+          ) : (
+            <div style={{ position: 'relative', display: 'inline-block' }}>
+              <span className="meta-item" style={{ cursor: 'pointer', opacity: 0.5 }}>
+                <Calendar size={12} /> Add Date
+              </span>
+              <input 
+                type="date" 
+                title="Add Deadline"
+                onChange={(e) => onUpdateTask(task.id, { dueDate: e.target.value || null })}
+                style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer' }}
+              />
+            </div>
           )}
           
           {task.tags && task.tags.length > 0 && task.tags.map(tag => (

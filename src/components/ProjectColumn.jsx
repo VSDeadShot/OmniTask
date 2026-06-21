@@ -11,6 +11,7 @@ export default function ProjectColumn({
   onDragLeave, 
   onDrop, 
   onToggleStatus, 
+  onUpdateTask,
   onDelete,
   onCompleteAll
 }) {
@@ -52,6 +53,7 @@ export default function ProjectColumn({
             onDragStart={onDragStart}
             onDragEnd={onDragEnd}
             onToggleStatus={onToggleStatus}
+            onUpdateTask={onUpdateTask}
             onDelete={onDelete}
           />
         ))}

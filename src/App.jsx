@@ -65,6 +65,22 @@ function App() {
     }
   };
 
+  const updateTask = async (id, updates) => {
+    try {
+      const taskToUpdate = tasks.find(t => t.id === id);
+      if (!taskToUpdate) return;
+      const response = await fetch(`${API_URL}/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...taskToUpdate, ...updates })
+      });
+      const updatedTask = await response.json();
+      setTasks(tasks.map(t => t.id === id ? updatedTask : t));
+    } catch (error) {
+      console.error("Failed to update task:", error);
+    }
+  };
+
   const completeProjectTasks = async (project) => {
     const projectTasks = tasks.filter(t => t.project === project && t.status === 'pending');
     if (projectTasks.length === 0) return;
@@ -237,6 +253,7 @@ function App() {
                   onDragLeave={handleDragLeave}
                   onDrop={handleDrop}
                   onToggleStatus={toggleStatus}
+                  onUpdateTask={updateTask}
                   onDelete={deleteTask}
                   onCompleteAll={() => completeProjectTasks(proj)}
                 />
