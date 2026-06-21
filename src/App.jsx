@@ -179,8 +179,14 @@ function App() {
   // Group pending tasks for Dashboard view
   const pendingTasks = tasks.filter(t => t.status !== 'completed');
   const tasksByProject = pendingTasks.reduce((acc, task) => {
-    if (!acc[task.project]) acc[task.project] = [];
-    acc[task.project].push(task);
+    const rawProject = task.project || 'Uncategorized';
+    const normalizedKey = rawProject.toLowerCase().replace(/\s+/g, '');
+    
+    const existingKey = Object.keys(acc).find(k => k.toLowerCase().replace(/\s+/g, '') === normalizedKey);
+    const displayKey = existingKey ? existingKey : rawProject;
+    
+    if (!acc[displayKey]) acc[displayKey] = [];
+    acc[displayKey].push(task);
     return acc;
   }, {});
 
