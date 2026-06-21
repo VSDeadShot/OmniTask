@@ -127,7 +127,20 @@ function createTray() {
   });
 }
 
-app.whenReady().then(() => {
+const gotTheLock = app.requestSingleInstanceLock();
+
+if (!gotTheLock) {
+  app.quit();
+} else {
+  app.on('second-instance', (event, commandLine, workingDirectory) => {
+    if (mainWindow) {
+      if (!mainWindow.isVisible()) mainWindow.show();
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.focus();
+    }
+  });
+
+  app.whenReady().then(() => {
   startApiServer();
   createWindow();
   createTray();
@@ -166,3 +179,4 @@ app.on('will-quit', () => {
 app.on('window-all-closed', () => {
   // Keep app running in tray on windows
 });
+}
