@@ -8,11 +8,13 @@ OmniTask is a powerful, centralized, and developer-focused task manager designed
 - **Global CLI Integration**: Manage tasks instantly from any directory using the `omni` command.
 - **Advanced UI Dashboard**: A sleek, dark-themed glassmorphism interface built with React.
 - **Drag & Drop Kanban**: Visually reorganize tasks and move them between project columns natively.
+- **Click-to-Edit Everything**: Instantly edit task descriptions, deadlines (with a dark-mode native calendar), and project tags directly on the task cards.
+- **Smart Project Grouping**: Fuzzy matching automatically groups tasks together regardless of spaces or capitalization (e.g., "Omni Task" and "omniTask" merge seamlessly).
+- **Single Instance Lock**: Ensures only one unified desktop app window opens, even if launched repeatedly via CLI.
 - **Productivity Tools**: Built-in Pomodoro timer to help you focus and execute tasks efficiently.
 - **Analytics Dashboard**: Interactive charts tracking your completed tasks and productivity over time.
 - **Smart Notifications**: Desktop notifications for tasks due today and overdue alerts.
 - **Background Sync**: Both the UI and CLI read from the same `~/.omnitask/todos.json` file in real-time.
-- **Customization**: Boot-on-startup settings, priority tags, custom aesthetics, and dark-mode native date pickers.
 
 ## 🛠️ Tech Stack
 
