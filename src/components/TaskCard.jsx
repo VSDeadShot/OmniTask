@@ -1,9 +1,25 @@
 import { useState } from 'react';
-import { Check, CheckCircle2, Trash2, Calendar, Tag, AlertCircle, GripVertical } from 'lucide-react';
+import { Check, CheckCircle2, Trash2, Calendar, Tag, AlertCircle, GripVertical, Folder } from 'lucide-react';
 
 export default function TaskCard({ task, draggedTaskId, onDragStart, onDragEnd, onToggleStatus, onUpdateTask, onDelete }) {
   const [isEditingDesc, setIsEditingDesc] = useState(false);
   const [descValue, setDescValue] = useState(task.description || '');
+  const [isEditingProject, setIsEditingProject] = useState(false);
+  const [projectValue, setProjectValue] = useState(task.project || '');
+
+  const handleProjectBlur = () => {
+    setIsEditingProject(false);
+    if (projectValue !== task.project && projectValue.trim() !== '') {
+      onUpdateTask(task.id, { project: projectValue.trim() });
+    }
+  };
+
+  const handleProjectKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      e.target.blur();
+    }
+  };
 
   const getPriorityClass = (level) => {
     switch(level) {
@@ -116,6 +132,28 @@ export default function TaskCard({ task, draggedTaskId, onDragStart, onDragEnd, 
               <Tag size={10} /> {tag}
             </span>
           ))}
+          
+          {isEditingProject ? (
+            <input
+              type="text"
+              value={projectValue}
+              onChange={(e) => setProjectValue(e.target.value)}
+              onBlur={handleProjectBlur}
+              onKeyDown={handleProjectKeyDown}
+              autoFocus
+              className="meta-item meta-tag"
+              style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid var(--accent)', color: 'white', width: '90px', padding: '0 4px', outline: 'none', borderRadius: '4px' }}
+            />
+          ) : (
+            <span 
+              className="meta-item meta-tag" 
+              onClick={() => setIsEditingProject(true)}
+              style={{ cursor: 'pointer', opacity: 0.8 }}
+              title="Click to change project"
+            >
+              <Folder size={10} /> {task.project || 'Uncategorized'}
+            </span>
+          )}
         </div>
       </div>
 
