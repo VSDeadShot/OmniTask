@@ -15,11 +15,17 @@ export default function Analytics({ tasks }) {
   const COLORS = ['#10b981', '#6366f1'];
 
   const projectStats = tasks.reduce((acc, task) => {
-    if (!acc[task.project]) {
-      acc[task.project] = { name: task.project, completed: 0, pending: 0 };
+    const rawProject = task.project || 'Uncategorized';
+    const normalizedKey = rawProject.toLowerCase().replace(/\s+/g, '');
+    
+    const existingKey = Object.keys(acc).find(k => k.toLowerCase().replace(/\s+/g, '') === normalizedKey);
+    const displayKey = existingKey ? existingKey : rawProject;
+
+    if (!acc[displayKey]) {
+      acc[displayKey] = { name: displayKey, completed: 0, pending: 0 };
     }
-    if (task.status === 'completed') acc[task.project].completed += 1;
-    else acc[task.project].pending += 1;
+    if (task.status === 'completed') acc[displayKey].completed += 1;
+    else acc[displayKey].pending += 1;
     return acc;
   }, {});
   const projectData = Object.values(projectStats).sort((a, b) => (b.completed + b.pending) - (a.completed + a.pending));
