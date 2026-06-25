@@ -190,7 +190,19 @@ function App() {
     return acc;
   }, {});
 
-  const completedTasks = tasks.filter(t => t.status === 'completed');
+  const completedTasks = tasks.filter(t => t.status === 'completed').sort((a, b) => {
+    const aDate = a.completedAt ? new Date(a.completedAt) : new Date(a.createdAt || 0);
+    const bDate = b.completedAt ? new Date(b.completedAt) : new Date(b.createdAt || 0);
+    return bDate - aDate;
+  });
+  
+  const completedByDate = completedTasks.reduce((acc, task) => {
+    const dateStr = task.completedAt ? new Date(task.completedAt).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : 'Older Tasks';
+    if (!acc[dateStr]) acc[dateStr] = [];
+    acc[dateStr].push(task);
+    return acc;
+  }, {});
+  
   const projects = Object.keys(tasksByProject).sort();
 
   return (
@@ -296,27 +308,34 @@ function App() {
               <div className="empty-state">No completed tasks yet.</div>
             ) : (
               <div className="task-list">
-                {completedTasks.map(task => (
-                  <div key={task.id} className="glass-panel task-card completed p-4">
-                    <button 
-                      className="status-btn checked"
-                      onClick={() => toggleStatus(task)}
-                    >
-                      <CheckCircle2 size={16} />
-                    </button>
-                    <div className="task-content">
-                      <div className="task-title-row">
-                        <span className="task-title">{task.title}</span>
-                      </div>
-                      <div className="task-meta">
-                        <span className="meta-item">{task.project}</span>
-                        {task.dueDate && <span className="meta-item">{task.dueDate}</span>}
-                      </div>
-                    </div>
-                    <div className="task-actions">
-                      <button className="status-btn" style={{color: '#f87171', borderColor: 'rgba(248,113,113,0.2)'}} onClick={() => deleteTask(task.id)}>
-                        <Trash2 size={16} />
-                      </button>
+                {Object.entries(completedByDate).map(([dateLabel, dateTasks]) => (
+                  <div key={dateLabel} style={{ marginBottom: '1.5rem' }}>
+                    <h3 style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.75rem', paddingLeft: '0.5rem', fontWeight: 600 }}>{dateLabel}</h3>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                      {dateTasks.map(task => (
+                        <div key={task.id} className="glass-panel task-card completed p-4">
+                          <button 
+                            className="status-btn checked"
+                            onClick={() => toggleStatus(task)}
+                          >
+                            <CheckCircle2 size={16} />
+                          </button>
+                          <div className="task-content">
+                            <div className="task-title-row">
+                              <span className="task-title">{task.title}</span>
+                            </div>
+                            <div className="task-meta">
+                              <span className="meta-item">{task.project}</span>
+                              {task.dueDate && <span className="meta-item">{task.dueDate}</span>}
+                            </div>
+                          </div>
+                          <div className="task-actions">
+                            <button className="status-btn" style={{color: '#f87171', borderColor: 'rgba(248,113,113,0.2)'}} onClick={() => deleteTask(task.id)}>
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 ))}

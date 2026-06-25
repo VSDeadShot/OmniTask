@@ -69,6 +69,7 @@ async function runInteractiveMenu() {
 
     if (action === 'complete') {
         selectedTask.status = 'completed';
+        selectedTask.completedAt = new Date().toISOString();
         fs.writeFileSync(DATA_FILE, JSON.stringify(tasks, null, 2));
         console.log(`✅ Marked "${selectedTask.title}" as complete!`);
     } else if (action === 'delete') {

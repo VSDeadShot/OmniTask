@@ -97,7 +97,16 @@ app.put('/api/tasks/:id', (req, res) => {
   const tasks = readData();
   const index = tasks.findIndex(t => t.id === req.params.id);
   if (index !== -1) {
-    tasks[index] = { ...tasks[index], ...req.body, id: req.params.id };
+    const oldTask = tasks[index];
+    const newTask = { ...oldTask, ...req.body, id: req.params.id };
+    
+    if (newTask.status === 'completed' && oldTask.status !== 'completed') {
+      newTask.completedAt = new Date().toISOString();
+    } else if (newTask.status !== 'completed') {
+      newTask.completedAt = null;
+    }
+
+    tasks[index] = newTask;
     writeData(tasks);
     res.json(tasks[index]);
   } else {
