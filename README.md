@@ -66,50 +66,14 @@ npm run electron:dev
 
 Once you've run `npm link` (or installed the app), you can interact with OmniTask directly from your terminal, no matter what folder you are in! The CLI instantly synchronizes with the desktop app.
 
-### Core Commands
-
-- **Add a generic task:**
-  ```bash
-  omni add "Buy coffee"
-  ```
-- **Add a task to a specific project with priority:**
-  ```bash
-  omni add "Emergency hotfix" -p "WebApp" --priority high
-  ```
-- **List pending tasks:**
-  ```bash
-  omni list
-  ```
-- **Interactive Menu:**
-  Launch an interactive terminal UI to mark tasks as complete or delete them using your arrow keys.
-  ```bash
-  omni open
-  ```
-
-### Productivity & Management Commands
-
-- **Launch the App:**
-  Instantly launch the OmniTask desktop GUI directly from your terminal.
-  ```bash
-  omni start
-  ```
-- **View Stats:**
-  Print out a quick text summary of your productivity (Pending, Completed, Overdue).
-  ```bash
-  omni stats
-  ```
-- **Today's Agenda:**
-  Filter and view only the tasks that are due today or are overdue.
-  ```bash
-  omni today
-  ```
-- **Clear Junk:**
-  Permanently delete all tasks marked as "completed" to clean up your data file.
-  ```bash
-  omni clear
-  ```
-- **Safety Net / Undo:**
-  Accidentally ran `omni clear`? Restore your entire task history to the exact state it was before you cleared it!
-  ```bash
-  omni undo
-  ```
+| Command | Description |
+| :--- | :--- |
+| `omni add`<br>`<title>` | Instantly adds a new generic task. (e.g. `omni add "Buy coffee"`) |
+| `omni add`<br>`<title> -p <project> --priority <level>` | Adds a task to a specific project with priority. (e.g. `omni add "Emergency hotfix" -p "WebApp" --priority high`) |
+| `omni list` | Quickly prints out a clean, color-coded list of all your currently pending tasks. |
+| `omni open` | Launches an interactive terminal UI to mark tasks as complete or delete them using your arrow keys. |
+| `omni start` | Instantly launches the OmniTask desktop GUI directly from your terminal. |
+| `omni stats` | Prints out a quick text summary of your productivity (Pending, Completed, Overdue). |
+| `omni today` | Filters and displays only the tasks that are due today or are overdue. |
+| `omni clear` | Permanently deletes all tasks marked as "completed" to clean up your data file. |
+| `omni undo` | Acts as an "Undo" button to instantly restore your entire task history to the exact state it was before you cleared it! |
