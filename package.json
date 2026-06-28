@@ -13,6 +13,7 @@
     "icon": "build/icon.png",
     "files": [
       "dist/**/*",
+      "build/**/*",
       "server.js",
       "main.js",
       "package.json"
