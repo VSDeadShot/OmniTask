@@ -93,7 +93,7 @@ export default function Analytics({ tasks }) {
             <div className="chart-wrapper">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={projectData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
-                  <XAxis dataKey="name" stroke="#666" tick={{fill: '#999', fontSize: 12}} />
+                  <XAxis dataKey="name" stroke="#666" tick={{fill: '#999', fontSize: 11}} interval={0} angle={-45} textAnchor="end" height={60} />
                   <YAxis stroke="#666" tick={{fill: '#999'}} allowDecimals={false} />
                   <Tooltip 
                     contentStyle={{ backgroundColor: '#1e1e2e', border: '1px solid #333', borderRadius: '8px' }}
