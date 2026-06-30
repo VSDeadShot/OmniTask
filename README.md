@@ -10,6 +10,8 @@ OmniTask is a powerful, centralized, and developer-focused task manager designed
 - **Drag & Drop Kanban**: Visually reorganize tasks and move them between project columns natively.
 - **Click-to-Edit Everything**: Instantly edit task descriptions, deadlines (with a dark-mode native calendar), and project tags directly on the task cards.
 - **Smart Project Grouping**: Fuzzy matching automatically groups tasks together regardless of spaces or capitalization (e.g., "Omni Task" and "omniTask" merge seamlessly).
+- **Chronological History**: Completed tasks are automatically grouped by the exact date they were finished, keeping your history meticulously organized.
+- **Strict Deadline Validation**: Calendar pickers dynamically prevent you from selecting past dates for task deadlines.
 - **Single Instance Lock**: Ensures only one unified desktop app window opens, even if launched repeatedly via CLI.
 - **Productivity Tools**: Built-in Pomodoro timer to help you focus and execute tasks efficiently.
 - **Analytics Dashboard**: Interactive charts tracking your completed tasks and productivity over time.
