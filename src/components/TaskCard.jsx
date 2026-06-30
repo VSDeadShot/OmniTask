@@ -109,6 +109,7 @@ export default function TaskCard({ task, draggedTaskId, onDragStart, onDragEnd, 
                 type="date" 
                 title="Change Deadline"
                 value={new Date(task.dueDate).toISOString().split('T')[0]}
+                min={new Date().toISOString().split('T')[0]}
                 onChange={(e) => onUpdateTask(task.id, { dueDate: e.target.value || null })}
                 style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer' }}
               />
@@ -121,6 +122,7 @@ export default function TaskCard({ task, draggedTaskId, onDragStart, onDragEnd, 
               <input 
                 type="date" 
                 title="Add Deadline"
+                min={new Date().toISOString().split('T')[0]}
                 onChange={(e) => onUpdateTask(task.id, { dueDate: e.target.value || null })}
                 style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer' }}
               />

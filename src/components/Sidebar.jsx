@@ -77,6 +77,7 @@ export default function Sidebar({ onAddTask }) {
               <input 
                 type="date" 
                 value={dueDate} 
+                min={new Date().toISOString().split('T')[0]}
                 onChange={(e) => setDueDate(e.target.value)}
               />
             </div>
