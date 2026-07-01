@@ -325,7 +325,7 @@ function App() {
                               <span className="task-title">{task.title}</span>
                             </div>
                             <div className="task-meta">
-                              <span className="meta-item">{task.project}</span>
+                              <span className="meta-item">{task.project ? task.project.replace(/omni\s+task/gi, 'OmniTask') : 'Uncategorized'}</span>
                               {task.dueDate && <span className="meta-item">{task.dueDate}</span>}
                             </div>
                           </div>

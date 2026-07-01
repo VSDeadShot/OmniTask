@@ -153,7 +153,7 @@ export default function TaskCard({ task, draggedTaskId, onDragStart, onDragEnd, 
               style={{ cursor: 'pointer', opacity: 0.8 }}
               title="Click to change project"
             >
-              <Folder size={10} /> {task.project || 'Uncategorized'}
+              <Folder size={10} /> {task.project ? task.project.replace(/omni\s+task/gi, 'OmniTask') : 'Uncategorized'}
             </span>
           )}
         </div>
