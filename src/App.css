@@ -345,7 +345,7 @@
 }
 
 input:checked + .toggle-slider {
-  background-color: var(--success);
+  background-color: var(--primary);
 }
 
 input:checked + .toggle-slider:before {
