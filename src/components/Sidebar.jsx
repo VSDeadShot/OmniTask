@@ -8,6 +8,7 @@ export default function Sidebar({ onAddTask }) {
   const [priority, setPriority] = useState('medium');
   const [dueDate, setDueDate] = useState('');
   const [tagsInput, setTagsInput] = useState('');
+  const [recurrence, setRecurrence] = useState('');
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -22,7 +23,8 @@ export default function Sidebar({ onAddTask }) {
       status: 'pending',
       priority,
       dueDate: dueDate || null,
-      tags: tagsArray
+      tags: tagsArray,
+      recurrence: recurrence || null
     };
 
     onAddTask(newTaskData);
@@ -33,6 +35,7 @@ export default function Sidebar({ onAddTask }) {
     setTagsInput('');
     setDueDate('');
     setPriority('medium');
+    setRecurrence('');
   };
 
   return (
@@ -74,13 +77,23 @@ export default function Sidebar({ onAddTask }) {
             </div>
             <div className="form-group half">
               <label>Due Date</label>
-              <input 
-                type="date" 
-                value={dueDate} 
+              <input
+                type="date"
+                value={dueDate}
                 min={new Date().toISOString().split('T')[0]}
                 onChange={(e) => setDueDate(e.target.value)}
               />
             </div>
+          </div>
+
+          <div className="form-group">
+            <label>Repeat</label>
+            <select value={recurrence} onChange={(e) => setRecurrence(e.target.value)}>
+              <option value="">Does not repeat</option>
+              <option value="daily">Daily</option>
+              <option value="weekly">Weekly</option>
+              <option value="monthly">Monthly</option>
+            </select>
           </div>
 
           <div className="form-group">

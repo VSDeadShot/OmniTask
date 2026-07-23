@@ -35,6 +35,19 @@ const writeData = (data) => {
   fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
 };
 
+// Computes the next due date for a recurring task, based off its current
+// due date (or today, if it has none) plus the recurrence interval.
+const computeNextDueDate = (recurrence, baseDateStr) => {
+  const d = baseDateStr ? new Date(baseDateStr) : new Date();
+  switch (recurrence) {
+    case 'daily': d.setDate(d.getDate() + 1); break;
+    case 'weekly': d.setDate(d.getDate() + 7); break;
+    case 'monthly': d.setMonth(d.getMonth() + 1); break;
+    default: return null;
+  }
+  return d.toISOString().split('T')[0];
+};
+
 const SETTINGS_FILE = path.join(dataDir, 'settings.json');
 
 // Initialize settings file if it doesn't exist
@@ -85,6 +98,7 @@ app.post('/api/tasks', (req, res) => {
     priority: req.body.priority || 'medium',
     dueDate: req.body.dueDate || null,
     tags: req.body.tags || [],
+    recurrence: req.body.recurrence || null,
     createdAt: new Date().toISOString()
   };
   tasks.push(newTask);
@@ -102,6 +116,22 @@ app.put('/api/tasks/:id', (req, res) => {
     
     if (newTask.status === 'completed' && oldTask.status !== 'completed') {
       newTask.completedAt = new Date().toISOString();
+
+      if (newTask.recurrence) {
+        tasks.push({
+          id: (Date.now() + 1).toString(),
+          project: newTask.project,
+          title: newTask.title,
+          description: newTask.description,
+          status: 'pending',
+          priority: newTask.priority,
+          dueDate: computeNextDueDate(newTask.recurrence, newTask.dueDate),
+          tags: newTask.tags,
+          recurrence: newTask.recurrence,
+          createdAt: new Date().toISOString(),
+          completedAt: null
+        });
+      }
     } else if (newTask.status !== 'completed') {
       newTask.completedAt = null;
     }

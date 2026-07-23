@@ -1,5 +1,8 @@
 import { useState } from 'react';
-import { Check, CheckCircle2, Trash2, Calendar, Tag, AlertCircle, GripVertical, Folder } from 'lucide-react';
+import { Check, CheckCircle2, Trash2, Calendar, Tag, AlertCircle, GripVertical, Folder, Repeat } from 'lucide-react';
+
+const RECURRENCE_CYCLE = [null, 'daily', 'weekly', 'monthly'];
+const RECURRENCE_LABELS = { daily: 'Daily', weekly: 'Weekly', monthly: 'Monthly' };
 
 export default function TaskCard({ task, draggedTaskId, onDragStart, onDragEnd, onToggleStatus, onUpdateTask, onDelete }) {
   const [isEditingDesc, setIsEditingDesc] = useState(false);
@@ -33,6 +36,12 @@ export default function TaskCard({ task, draggedTaskId, onDragStart, onDragEnd, 
   const isOverdue = (dateString) => {
     if (!dateString) return false;
     return new Date(dateString) < new Date(new Date().setHours(0,0,0,0));
+  };
+
+  const cycleRecurrence = () => {
+    const currentIndex = RECURRENCE_CYCLE.indexOf(task.recurrence || null);
+    const next = RECURRENCE_CYCLE[(currentIndex + 1) % RECURRENCE_CYCLE.length];
+    onUpdateTask(task.id, { recurrence: next });
   };
 
   const handleDescBlur = () => {
@@ -134,6 +143,15 @@ export default function TaskCard({ task, draggedTaskId, onDragStart, onDragEnd, 
               <Tag size={10} /> {tag}
             </span>
           ))}
+
+          <span
+            className="meta-item"
+            onClick={cycleRecurrence}
+            style={{ cursor: 'pointer', opacity: task.recurrence ? 1 : 0.5 }}
+            title="Click to change repeat interval"
+          >
+            <Repeat size={12} /> {task.recurrence ? RECURRENCE_LABELS[task.recurrence] : 'Does not repeat'}
+          </span>
           
           {isEditingProject ? (
             <input

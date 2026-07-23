@@ -17,6 +17,20 @@ const DATA_FILE = path.join(dataDir, 'todos.json');
 const args = process.argv.slice(2);
 const command = args[0];
 
+// Computes the next due date for a recurring task, based off its current
+// due date (or today, if it has none) plus the recurrence interval.
+// Kept in sync with the equivalent helper in server.js.
+const computeNextDueDate = (recurrence, baseDateStr) => {
+    const d = baseDateStr ? new Date(baseDateStr) : new Date();
+    switch (recurrence) {
+        case 'daily': d.setDate(d.getDate() + 1); break;
+        case 'weekly': d.setDate(d.getDate() + 7); break;
+        case 'monthly': d.setMonth(d.getMonth() + 1); break;
+        default: return null;
+    }
+    return d.toISOString().split('T')[0];
+};
+
 if (!fs.existsSync(DATA_FILE)) {
   fs.writeFileSync(DATA_FILE, JSON.stringify([]));
 }
@@ -70,6 +84,23 @@ async function runInteractiveMenu() {
     if (action === 'complete') {
         selectedTask.status = 'completed';
         selectedTask.completedAt = new Date().toISOString();
+
+        if (selectedTask.recurrence) {
+            tasks.push({
+                id: (Date.now() + 1).toString(),
+                project: selectedTask.project,
+                title: selectedTask.title,
+                description: selectedTask.description,
+                status: 'pending',
+                priority: selectedTask.priority,
+                dueDate: computeNextDueDate(selectedTask.recurrence, selectedTask.dueDate),
+                tags: selectedTask.tags,
+                recurrence: selectedTask.recurrence,
+                createdAt: new Date().toISOString(),
+                completedAt: null
+            });
+        }
+
         fs.writeFileSync(DATA_FILE, JSON.stringify(tasks, null, 2));
         console.log(`✅ Marked "${selectedTask.title}" as complete!`);
     } else if (action === 'delete') {
