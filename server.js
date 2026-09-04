@@ -1,157 +1,275 @@
 import express from 'express';
 import cors from 'cors';
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
 
-import os from 'os';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+import {
+  readTasks,
+  mutateTasks,
+  readSettings,
+  writeSettings,
+  buildTask,
+  validateTask,
+  touch,
+  completeTask,
+  uncompleteTask,
+  nextOccurrenceOf,
+  normalizeProject,
+  PRIORITIES
+} from './data.js';
 
 const app = express();
-const PORT = 3001;
-const homeDir = os.homedir();
-const dataDir = path.join(homeDir, '.omnitask');
-if (!fs.existsSync(dataDir)) {
-  fs.mkdirSync(dataDir);
-}
-const DATA_FILE = path.join(dataDir, 'todos.json');
+const PORT = Number(process.env.OMNITASK_PORT) || 3001;
 
-app.use(cors());
+// Loopback only. Previously this was `app.listen(PORT)` with no host, which
+// binds 0.0.0.0 and left the API reachable from anything on the LAN.
+const HOST = '127.0.0.1';
+
+// Origins allowed to drive the API from a browser context:
+//   - the Vite dev server
+//   - "null", which is what Chromium sends for the packaged app's file:// page
+//
+// Caveat worth knowing: "null" is not a tight control. A sandboxed iframe on a
+// hostile page also sends Origin: null, so allowlisting it does leave a gap for
+// a browser-based CSRF against loopback. The Host check below closes the DNS
+// rebinding half of that, and the real fix is to stop needing "null" at all by
+// serving dist/ from this server so the renderer is same-origin.
+const ALLOWED_ORIGINS = new Set([
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+  `http://localhost:${PORT}`,
+  `http://127.0.0.1:${PORT}`,
+  'null'
+]);
+
+app.use(cors({
+  origin(origin, callback) {
+    // No Origin header at all: curl, the CLI, the MCP server. Not a
+    // browser-initiated cross-origin request, so there is nothing to guard.
+    if (!origin) return callback(null, true);
+    if (ALLOWED_ORIGINS.has(origin)) return callback(null, true);
+    return callback(new Error(`Origin not allowed: ${origin}`));
+  }
+}));
+
+// Rejects requests whose Host header isn't loopback. This is what stops DNS
+// rebinding, where a hostile domain resolves to 127.0.0.1 and the browser
+// happily connects but still sends the attacker's hostname as Host.
+app.use((req, res, next) => {
+  const host = (req.headers.host || '').split(':')[0].replace(/^\[|\]$/g, '');
+  if (host === 'localhost' || host === '127.0.0.1' || host === '::1') return next();
+  return res.status(403).json({ error: 'Forbidden: OmniTask only accepts loopback requests' });
+});
+
 app.use(express.json());
 
-// Initialize data file if it doesn't exist
-if (!fs.existsSync(DATA_FILE)) {
-  fs.writeFileSync(DATA_FILE, JSON.stringify([]));
-}
+// ---------------------------------------------------------------------------
+// Filtering
+// ---------------------------------------------------------------------------
 
-const readData = () => {
-  const data = fs.readFileSync(DATA_FILE, 'utf8');
-  return JSON.parse(data);
-};
+const startOfDay = (value) => new Date(value).setHours(0, 0, 0, 0);
 
-const writeData = (data) => {
-  fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
-};
+const applyFilters = (tasks, query) => {
+  let result = tasks;
+  const today = startOfDay(new Date());
 
-// Computes the next due date for a recurring task, based off its current
-// due date (or today, if it has none) plus the recurrence interval.
-const computeNextDueDate = (recurrence, baseDateStr) => {
-  const d = baseDateStr ? new Date(baseDateStr) : new Date();
-  switch (recurrence) {
-    case 'daily': d.setDate(d.getDate() + 1); break;
-    case 'weekly': d.setDate(d.getDate() + 7); break;
-    case 'monthly': d.setMonth(d.getMonth() + 1); break;
-    default: return null;
+  if (query.status) {
+    result = result.filter((t) => t.status === query.status);
   }
-  return d.toISOString().split('T')[0];
-};
-
-const SETTINGS_FILE = path.join(dataDir, 'settings.json');
-
-// Initialize settings file if it doesn't exist
-if (!fs.existsSync(SETTINGS_FILE)) {
-  fs.writeFileSync(SETTINGS_FILE, JSON.stringify({ openAtLogin: false }));
-}
-
-const readSettings = () => {
-  try {
-    return JSON.parse(fs.readFileSync(SETTINGS_FILE, 'utf8'));
-  } catch (e) {
-    return { openAtLogin: false };
+  if (query.project) {
+    const wanted = normalizeProject(query.project);
+    result = result.filter((t) => normalizeProject(t.project) === wanted);
   }
+  if (query.priority) {
+    result = result.filter((t) => t.priority === query.priority);
+  }
+  if (query.tag) {
+    const wanted = String(query.tag).toLowerCase();
+    result = result.filter((t) => (t.tags || []).some((tag) => String(tag).toLowerCase() === wanted));
+  }
+  if (query.q) {
+    const needle = String(query.q).toLowerCase();
+    result = result.filter((t) =>
+      `${t.title || ''} ${t.description || ''}`.toLowerCase().includes(needle)
+    );
+  }
+
+  if (query.due) {
+    switch (query.due) {
+      case 'none':
+        result = result.filter((t) => !t.dueDate);
+        break;
+      case 'today':
+        result = result.filter((t) => t.dueDate && startOfDay(t.dueDate) === today);
+        break;
+      case 'overdue':
+        result = result.filter(
+          (t) => t.dueDate && t.status !== 'completed' && startOfDay(t.dueDate) < today
+        );
+        break;
+      case 'week': {
+        const weekOut = new Date();
+        weekOut.setDate(weekOut.getDate() + 7);
+        const limit = startOfDay(weekOut);
+        result = result.filter(
+          (t) => t.dueDate && startOfDay(t.dueDate) >= today && startOfDay(t.dueDate) <= limit
+        );
+        break;
+      }
+      default:
+        break;
+    }
+  }
+
+  if (query.dueBefore) {
+    const cutoff = startOfDay(query.dueBefore);
+    result = result.filter((t) => t.dueDate && startOfDay(t.dueDate) < cutoff);
+  }
+  if (query.dueAfter) {
+    const cutoff = startOfDay(query.dueAfter);
+    result = result.filter((t) => t.dueDate && startOfDay(t.dueDate) > cutoff);
+  }
+
+  if (query.sort) {
+    // Sorting is opt-in; with no sort param the array keeps its file order,
+    // which is what the dashboard has always rendered.
+    result = [...result];
+    if (query.sort === 'dueDate') {
+      result.sort((a, b) => {
+        if (!a.dueDate) return 1; // undated tasks sink to the bottom
+        if (!b.dueDate) return -1;
+        return startOfDay(a.dueDate) - startOfDay(b.dueDate);
+      });
+    } else if (query.sort === 'priority') {
+      const rank = (t) => PRIORITIES.indexOf(t.priority);
+      result.sort((a, b) => rank(b) - rank(a)); // high first
+    } else if (query.sort === 'createdAt') {
+      result.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)); // newest first
+    }
+  }
+
+  if (query.limit) {
+    const n = Number.parseInt(query.limit, 10);
+    if (Number.isFinite(n) && n > 0) result = result.slice(0, n);
+  }
+
+  return result;
 };
 
-const writeSettings = (settings) => {
-  fs.writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 2));
+// ---------------------------------------------------------------------------
+// Routes
+// ---------------------------------------------------------------------------
+
+app.get('/api/health', (req, res) => {
+  const tasks = readTasks();
+  res.json({
+    ok: true,
+    service: 'omnitask',
+    taskCount: tasks.length,
+    pending: tasks.filter((t) => t.status === 'pending').length
+  });
+});
+
+// Returns a bare array. App.jsx and its 5s poll depend on that shape, so the
+// filter metadata is deliberately not wrapped in an envelope.
+app.get('/api/tasks', (req, res) => {
+  res.json(applyFilters(readTasks(), req.query));
+});
+
+app.get('/api/tasks/:id', (req, res) => {
+  const task = readTasks().find((t) => t.id === req.params.id);
+  if (!task) return res.status(404).json({ error: 'Task not found' });
+  res.json(task);
+});
+
+app.post('/api/tasks', (req, res) => {
+  const { ok, errors } = validateTask(req.body || {});
+  if (!ok) return res.status(400).json({ error: 'Invalid task', errors });
+
+  const newTask = buildTask(req.body);
+  mutateTasks((tasks) => {
+    tasks.push(newTask);
+  });
+  res.status(201).json(newTask);
+});
+
+// PUT and PATCH share a handler: both merge the body into the existing task.
+const updateHandler = (req, res) => {
+  const { ok, errors } = validateTask(req.body || {}, { partial: true });
+  if (!ok) return res.status(400).json({ error: 'Invalid task', errors });
+
+  const result = mutateTasks((tasks) => {
+    const index = tasks.findIndex((t) => t.id === req.params.id);
+    if (index === -1) return null;
+
+    const oldTask = tasks[index];
+    const merged = { ...oldTask, ...req.body, id: req.params.id };
+
+    // Completion transitions keep the behavior the dashboard already relies on:
+    // stamp completedAt on the way in, spawn the next occurrence if it recurs,
+    // clear completedAt on the way back out.
+    if (merged.status === 'completed' && oldTask.status !== 'completed') {
+      merged.completedAt = new Date().toISOString();
+      if (merged.recurrence) tasks.push(nextOccurrenceOf(merged));
+    } else if (merged.status !== 'completed') {
+      merged.completedAt = null;
+    }
+
+    touch(merged);
+    tasks[index] = merged;
+    return merged;
+  });
+
+  if (!result) return res.status(404).json({ error: 'Task not found' });
+  res.json(result);
 };
 
-// Get settings
+app.put('/api/tasks/:id', updateHandler);
+app.patch('/api/tasks/:id', updateHandler);
+
+app.post('/api/tasks/:id/complete', (req, res) => {
+  const result = mutateTasks((tasks) => completeTask(tasks, req.params.id));
+  if (!result) return res.status(404).json({ error: 'Task not found' });
+  res.json(result);
+});
+
+app.post('/api/tasks/:id/uncomplete', (req, res) => {
+  const task = mutateTasks((tasks) => uncompleteTask(tasks, req.params.id));
+  if (!task) return res.status(404).json({ error: 'Task not found' });
+  res.json(task);
+});
+
+app.delete('/api/tasks/:id', (req, res) => {
+  const deleted = mutateTasks((tasks) => {
+    const index = tasks.findIndex((t) => t.id === req.params.id);
+    if (index === -1) return null;
+    return tasks.splice(index, 1)[0];
+  });
+
+  // Previously this reported success for ids that never existed, which would
+  // let an agent believe it had deleted something it hadn't.
+  if (!deleted) return res.status(404).json({ error: 'Task not found' });
+  res.json({ success: true, deleted });
+});
+
 app.get('/api/settings', (req, res) => {
   res.json(readSettings());
 });
 
-// Update settings
 app.post('/api/settings', (req, res) => {
-  const current = readSettings();
-  const updated = { ...current, ...req.body };
+  const updated = { ...readSettings(), ...req.body };
   writeSettings(updated);
   res.json(updated);
 });
 
-// Get all tasks
-app.get('/api/tasks', (req, res) => {
-  const tasks = readData();
-  res.json(tasks);
-});
-
-// Add a new task
-app.post('/api/tasks', (req, res) => {
-  const tasks = readData();
-  const newTask = {
-    id: Date.now().toString(),
-    project: req.body.project || 'General',
-    title: req.body.title,
-    description: req.body.description || '',
-    status: req.body.status || 'pending',
-    priority: req.body.priority || 'medium',
-    dueDate: req.body.dueDate || null,
-    tags: req.body.tags || [],
-    recurrence: req.body.recurrence || null,
-    createdAt: new Date().toISOString()
-  };
-  tasks.push(newTask);
-  writeData(tasks);
-  res.status(201).json(newTask);
-});
-
-// Update a task
-app.put('/api/tasks/:id', (req, res) => {
-  const tasks = readData();
-  const index = tasks.findIndex(t => t.id === req.params.id);
-  if (index !== -1) {
-    const oldTask = tasks[index];
-    const newTask = { ...oldTask, ...req.body, id: req.params.id };
-    
-    if (newTask.status === 'completed' && oldTask.status !== 'completed') {
-      newTask.completedAt = new Date().toISOString();
-
-      if (newTask.recurrence) {
-        tasks.push({
-          id: (Date.now() + 1).toString(),
-          project: newTask.project,
-          title: newTask.title,
-          description: newTask.description,
-          status: 'pending',
-          priority: newTask.priority,
-          dueDate: computeNextDueDate(newTask.recurrence, newTask.dueDate),
-          tags: newTask.tags,
-          recurrence: newTask.recurrence,
-          createdAt: new Date().toISOString(),
-          completedAt: null
-        });
-      }
-    } else if (newTask.status !== 'completed') {
-      newTask.completedAt = null;
-    }
-
-    tasks[index] = newTask;
-    writeData(tasks);
-    res.json(tasks[index]);
-  } else {
-    res.status(404).json({ error: 'Task not found' });
+// CORS rejections arrive here as errors; answer with a clear 403 instead of a
+// stack trace.
+app.use((err, req, res, _next) => {
+  if (err && /Origin not allowed/.test(err.message)) {
+    return res.status(403).json({ error: err.message });
   }
+  console.error('Unhandled error:', err);
+  res.status(500).json({ error: 'Internal server error' });
 });
 
-// Delete a task
-app.delete('/api/tasks/:id', (req, res) => {
-  const tasks = readData();
-  const filteredTasks = tasks.filter(t => t.id !== req.params.id);
-  writeData(filteredTasks);
-  res.json({ success: true });
-});
-
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+app.listen(PORT, HOST, () => {
+  console.log(`OmniTask API running on http://${HOST}:${PORT} (loopback only)`);
 });

@@ -18,4 +18,14 @@ export default defineConfig([
       parserOptions: { ecmaFeatures: { jsx: true } },
     },
   },
+  {
+    // Node-side processes: the API, the shared data layer, the CLI, the Electron
+    // main process and the MCP server. Without this they are linted as browser
+    // code and every use of `process` reports as undefined.
+    files: ['server.js', 'data.js', 'cli.js', 'main.js', 'mcp-server.js'],
+    languageOptions: { globals: globals.node },
+    rules: {
+      'no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+    },
+  },
 ])
