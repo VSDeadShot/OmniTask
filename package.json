@@ -15,6 +15,7 @@
       "dist/**/*",
       "build/**/*",
       "server.js",
+      "data.js",
       "main.js",
       "package.json"
     ],
@@ -30,6 +31,7 @@
   },
   "scripts": {
     "dev": "vite",
+    "server": "node server.js",
     "build": "vite build",
     "electron:dev": "concurrently \"vite\" \"wait-on tcp:5173 && electron .\"",
     "electron:build": "vite build && electron-builder",

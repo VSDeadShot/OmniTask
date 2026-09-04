@@ -1,5 +1,8 @@
 import express from 'express';
 import cors from 'cors';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 import {
   readTasks,
@@ -16,6 +19,8 @@ import {
   PRIORITIES
 } from './data.js';
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
 const app = express();
 const PORT = Number(process.env.OMNITASK_PORT) || 3001;
 
@@ -23,21 +28,20 @@ const PORT = Number(process.env.OMNITASK_PORT) || 3001;
 // binds 0.0.0.0 and left the API reachable from anything on the LAN.
 const HOST = '127.0.0.1';
 
-// Origins allowed to drive the API from a browser context:
-//   - the Vite dev server
-//   - "null", which is what Chromium sends for the packaged app's file:// page
+// Origins allowed to drive the API from a browser context: the Vite dev server,
+// and this server itself.
 //
-// Caveat worth knowing: "null" is not a tight control. A sandboxed iframe on a
-// hostile page also sends Origin: null, so allowlisting it does leave a gap for
-// a browser-based CSRF against loopback. The Host check below closes the DNS
-// rebinding half of that, and the real fix is to stop needing "null" at all by
-// serving dist/ from this server so the renderer is same-origin.
+// The packaged app used to load dist/index.html over file://, whose Origin is
+// the literal string "null". Allowlisting that would have been a real hole --
+// sandboxed iframes on a hostile page send Origin: null too, and there is no
+// way to tell the two apart. Instead this server serves dist/ (see below) and
+// the packaged renderer loads from http://127.0.0.1:PORT, which is same-origin
+// and needs no exception at all.
 const ALLOWED_ORIGINS = new Set([
   'http://localhost:5173',
   'http://127.0.0.1:5173',
   `http://localhost:${PORT}`,
-  `http://127.0.0.1:${PORT}`,
-  'null'
+  `http://127.0.0.1:${PORT}`
 ]);
 
 app.use(cors({
@@ -260,6 +264,14 @@ app.post('/api/settings', (req, res) => {
   res.json(updated);
 });
 
+// Serve the built dashboard, so the packaged app can load the UI from this
+// origin instead of file://. Registered after the API routes so it can never
+// shadow them. In dev this directory doesn't exist and Vite serves the UI.
+const distDir = path.join(__dirname, 'dist');
+if (fs.existsSync(distDir)) {
+  app.use(express.static(distDir));
+}
+
 // CORS rejections arrive here as errors; answer with a clear 403 instead of a
 // stack trace.
 app.use((err, req, res, _next) => {
@@ -270,6 +282,16 @@ app.use((err, req, res, _next) => {
   res.status(500).json({ error: 'Internal server error' });
 });
 
-app.listen(PORT, HOST, () => {
+const server = app.listen(PORT, HOST, () => {
   console.log(`OmniTask API running on http://${HOST}:${PORT} (loopback only)`);
+});
+
+// Electron forks this file, so a clear message beats an unhandled crash when
+// the port is already taken by another OmniTask instance or an unrelated app.
+server.on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error(`Port ${PORT} is already in use — not starting a second API.`);
+    process.exit(1);
+  }
+  throw err;
 });
